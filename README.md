@@ -12,7 +12,7 @@ as far my knowledge goes, today only [kitty](https://sw.kovidgoyal.net/kitty/) a
 Gleeter may be used in 3 different ways:
 
 * Without arguments or by providing `latest` as the argument: it will fetch the
-latest comic from XCKD and display it into the terminal.
+latest comic from XKCD and display it into the terminal.
 * Providing `random` as the argument: it will fetch a random comic from XKCD
 (**warning**: some very old comics, IDs ranging from 1 to 120 and probably
 more, won't display in the terminal, I don't know why, probably a very old
