@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+GLEETER_PATH="/opt/gleeter"
+ENTRYPOINT="${GLEETER_PATH}/entrypoint.sh"
+
+exec ${ENTRYPOINT} run "$@"
