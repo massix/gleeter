@@ -5,37 +5,41 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
+      inherit (pkgs) stdenv lib mkShell;
     in
     {
-      devShells.${system}.default = pkgs.mkShell {
-        packages = with pkgs; [ erlang_27 rebar3 ];
+      devShells.${system}.default = mkShell {
+        packages = with pkgs; [ erlang_27 rebar3 gleam ];
       };
       overlays.${system} = _: _: { gleeter = self.packages.${system}.default; };
-      packages.${system}.default = pkgs.stdenv.mkDerivation rec {
+      packages.${system}.default = stdenv.mkDerivation rec {
         pname = "gleeter";
         version = "1.0.0";
 
-        gleamPackages = pkgs.stdenv.mkDerivation {
+        gleamPackages = stdenv.mkDerivation {
           inherit version;
           pname = "${pname}-gleam-packages";
 
-          nativeBuildInputs = with pkgs; [ gleam rebar3 ];
+          nativeBuildInputs = with pkgs; [ gleam ];
           src = builtins.filterSource
             (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) ./.;
 
           buildPhase = ''
             mkdir -p $out
             HOME=$PWD gleam deps download
+            grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
+            echo -e "[packages]\n" > build/packages/packages.toml
+            cat packages.toml >> build/packages/packages.toml
           '';
 
           installPhase = ''
             mkdir -p $out/build/
-            cp -r build/packages $out/build/
+            cp --recursive build/packages $out/build/
           '';
 
           outputHashAlgo = "sha256";
           outputHashMode = "recursive";
-          outputHash = "sha256-Gr90dYn6fnktoPHXMxkwkQDSEMRjR29CPsnjZO7hJZU=";
+          outputHash = "sha256-CS4tBFm4dSgd4zRCNJ7+6JwH+AYnAVGuxSzmwZxjDTE=";
         };
 
         src = builtins.filterSource
@@ -58,7 +62,6 @@
 
         buildPhase = ''
           runHook preBuildHook
-          ls -laR .
           HOME=$PWD make package
           runHook postBuildHook
         '';
