@@ -5,7 +5,7 @@
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
-      inherit (pkgs) stdenv lib mkShell;
+      inherit (pkgs) stdenv mkShell;
     in
     {
       devShells.${system}.default = mkShell {
@@ -30,6 +30,7 @@
             grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
             echo -e "[packages]\n" > build/packages/packages.toml
             cat packages.toml >> build/packages/packages.toml
+            rm packages.toml
           '';
 
           installPhase = ''

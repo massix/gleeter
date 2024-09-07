@@ -5,6 +5,7 @@ pub type ApplicationBehavior {
   RandomComic
   LatestComic
   WithIDComic(id: Int)
+  PrintVersion
 }
 
 pub fn get_application_behavior() -> ApplicationBehavior {
@@ -19,6 +20,7 @@ pub fn parse_arguments(
 ) -> ApplicationBehavior {
   case args {
     [] -> last
+    ["version", ..] -> PrintVersion
     ["random", ..rest] -> parse_arguments(rest, RandomComic)
     ["latest", ..rest] -> parse_arguments(rest, LatestComic)
     ["id", id, ..rest] -> {

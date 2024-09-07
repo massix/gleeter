@@ -29,5 +29,12 @@ pub fn application_behavior_tests() {
       )
       |> expect.to_equal(application_behavior.WithIDComic(14))
     }),
+    it("version should override everything", fn() {
+      application_behavior.parse_arguments(
+        ["id", "24", "version", "random", "latest"],
+        application_behavior.RandomComic,
+      )
+      |> expect.to_equal(application_behavior.PrintVersion)
+    }),
   ])
 }
