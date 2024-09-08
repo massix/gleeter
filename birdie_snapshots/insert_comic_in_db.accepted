@@ -1,0 +1,10 @@
+---
+version: 1.2.0
+title: Insert comic in DB
+file: ./test/cache_test.gleam
+test_name: cache_tests
+---
+Inited(
+  ":memory:",
+  Esqlite3(ErlRef),
+)

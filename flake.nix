@@ -9,7 +9,7 @@
     in
     {
       devShells.${system}.default = mkShell {
-        packages = with pkgs; [ erlang_27 rebar3 gleam ];
+        packages = with pkgs; [ erlang_27 rebar3 gleam sqlite ];
       };
       overlays.${system} = _: _: { gleeter = self.packages.${system}.default; };
       packages.${system}.default = stdenv.mkDerivation rec {
