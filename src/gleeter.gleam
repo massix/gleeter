@@ -6,7 +6,7 @@ import gleam/result
 import kitty/graphics
 import xkcd/api
 
-const gleeter_version = "1.0.0"
+const gleeter_version = "1.1.0"
 
 type PrintComic {
   Latest

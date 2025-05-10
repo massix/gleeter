@@ -2,7 +2,7 @@ import gleam/bit_array
 import gleam/list
 import gleam/result
 import gleam/string
-import gleam/string_builder
+import gleam/string_tree
 
 pub type Chunk {
   Chunk(data: String, size: Int)
@@ -18,15 +18,15 @@ pub fn kitty_control_to_string(in: KittyControl) -> String {
     key <> "=" <> value
   }
 
-  string_builder.new()
-  |> string_builder.append("\u{001b}_G")
-  |> string_builder.append(
+  string_tree.new()
+  |> string_tree.append("\u{001b}_G")
+  |> string_tree.append(
     list.map(in.options, tuple_to_string) |> string.join(","),
   )
-  |> string_builder.append(";")
-  |> string_builder.append(in.payload)
-  |> string_builder.append("\u{001b}\\")
-  |> string_builder.to_string
+  |> string_tree.append(";")
+  |> string_tree.append(in.payload)
+  |> string_tree.append("\u{001b}\\")
+  |> string_tree.to_string
 }
 
 pub type GraphicsError {

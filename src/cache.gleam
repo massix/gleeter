@@ -1,5 +1,5 @@
 import birl
-import gleam/dynamic
+import gleam/dynamic/decode
 import gleam/int
 import gleam/io
 import gleam/uri
@@ -100,7 +100,7 @@ pub fn insert_comic(cache: CacheSystem, comic comic: api.Xkcd) -> CacheSystem {
             sqlight.text(img_url |> uri.to_string),
             sqlight.text(title),
           ],
-          dynamic.element(0, dynamic.int),
+          decode.int,
         )
 
       case insert_result {

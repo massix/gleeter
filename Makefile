@@ -1,4 +1,4 @@
-GLEAM := $(shell which gleam)
+GLEAM := $(shell command -v gleam)
 
 .PHONY: test
 

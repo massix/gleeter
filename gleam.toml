@@ -5,18 +5,17 @@ licenses = ["MIT"]
 repository = { type = "github", user = "massix", repo = "gleeter" }
 
 [dependencies]
-gleam_stdlib = "0.39.0"
-gleam_hackney = "1.2.0"
-gleam_json = "2.0.0"
-gleam_erlang = "0.25.0"
-gleam_otp = "0.10.0"
-birl = "1.7.1"
-simplifile = "2.0.1"
-gleam_http = "3.6.0"
-argv = "1.0.2"
-sqlight = "0.9.1"
+gleam_stdlib = ">= 0.59.0 and < 1.0.0"
+gleam_hackney = ">= 1.3.1 and < 2.0.0"
+gleam_json = ">= 2.3.0 and < 3.0.0"
+birl = ">= 1.7.1 and < 2.0.0"
+simplifile = ">= 2.2.1 and < 3.0.0"
+gleam_http = ">= 4.0.0 and < 5.0.0"
+argv = ">= 1.0.2 and < 2.0.0"
+sqlight = ">= 1.0.1 and < 2.0.0"
+gleam_otp = ">= 0.16.1 and < 1.0.0"
 
 [dev-dependencies]
-startest = "0.5.0"
-birdie = "1.2.0"
-pprint = "1.0.3"
+startest = ">= 0.6.0 and < 1.0.0"
+birdie = ">= 1.2.7 and < 2.0.0"
+pprint = ">= 1.0.5 and < 2.0.0"
