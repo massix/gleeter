@@ -122,7 +122,7 @@
           meta = with pkgs.lib; {
             description = "Fetch and display XKCD comics directly in the terminal";
             mainProgram = "gleeter";
-            homepage = "https://github.com/massix/gleeter.git";
+            homepage = "https://github.com/massix/gleeter";
             license = licenses.mit;
             maintainers = [ maintainers.massimogengarelli ];
           };

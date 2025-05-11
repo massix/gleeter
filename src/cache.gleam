@@ -1,14 +1,19 @@
 import birl
 import gleam/dynamic/decode
 import gleam/int
-import gleam/io
+import gleam/list
+import gleam/result
 import gleam/uri
 import sqlight
 import xkcd/api
 
-pub opaque type CacheSystem {
-  Empty
-  Inited(path: String, db: sqlight.Connection)
+pub opaque type Cache {
+  Faulty(error: String)
+  Cache(path: String, db: sqlight.Connection, operations: List(Operation))
+}
+
+pub type Operation {
+  Insert(numbers: List(Int))
 }
 
 const create_table_query = "
@@ -33,82 +38,116 @@ const create_table_query = "
 "
 
 const insert_table_comic_query = "
-  insert into comics
-    (number, publication_date, link, news, safe_title, transcript, alternative_text, img_url, title)
-  values
-    (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  insert into comics (number, publication_date, link, news, safe_title, transcript, alternative_text, img_url, title)
+  values (?, ?, ?, ?, ?, ?, ?, ?, ?)
   returning number
 "
 
 const insert_table_image_query = "
-  insert into images(comic_number, image_data) values(?, ?)
+  insert into images(comic_number, image_data)
+  values(?, ?)
+  returning comic_number
 "
 
-fn print_sqlight_error(in: sqlight.Error) -> Nil {
+fn convert_sqlight_error(in: sqlight.Error) -> String {
   let sqlight.SqlightError(_, desc, code) = in
-  io.println_error("sqlight error: " <> int.to_string(code) <> ", " <> desc)
-}
-
-pub fn new(path: String) -> CacheSystem {
-  case sqlight.open(path) {
-    Ok(db) -> {
-      case sqlight.exec(create_table_query, db) {
-        Ok(_) -> Inited(path, db)
-        Error(e) -> {
-          io.println_error("Warning: could not init cache system from " <> path)
-          print_sqlight_error(e)
-          Empty
-        }
-      }
-    }
-    Error(e) -> {
-      io.println_error("Warning: could not retrieve cache from: " <> path)
-      print_sqlight_error(e)
-      Empty
+  "sqlight error: "
+  <> int.to_string(code)
+  <> {
+    case desc {
+      "" -> ""
+      x -> " - " <> x
     }
   }
 }
 
-pub fn insert_comic(cache: CacheSystem, comic comic: api.Xkcd) -> CacheSystem {
+fn with_cache(cache: Cache, f: fn(sqlight.Connection) -> Cache) -> Cache {
   case cache {
-    Empty -> Empty
-    Inited(db:, ..) -> {
-      let api.Xkcd(
-        number:,
-        publication_date:,
-        link:,
-        news:,
-        safe_title:,
-        transcript:,
-        alternative_text:,
-        img_url:,
-        title:,
-      ) = comic
+    Faulty(_) -> cache
+    Cache(db:, ..) -> f(db)
+  }
+}
 
-      let insert_result =
-        sqlight.query(
-          insert_table_comic_query,
-          db,
-          [
-            sqlight.int(number),
-            sqlight.text(publication_date |> birl.to_http),
-            sqlight.nullable(sqlight.text, link),
-            sqlight.nullable(sqlight.text, news),
-            sqlight.text(safe_title),
-            sqlight.nullable(sqlight.text, transcript),
-            sqlight.text(alternative_text),
-            sqlight.text(img_url |> uri.to_string),
-            sqlight.text(title),
-          ],
-          decode.int,
-        )
-
-      case insert_result {
-        Ok(_) -> Nil
-        Error(e) -> print_sqlight_error(e)
+pub fn new(path: String) -> Cache {
+  case sqlight.open(path) {
+    Ok(db) -> {
+      case sqlight.exec(create_table_query, db) {
+        Ok(_) -> Cache(path, db, [])
+        Error(e) -> {
+          convert_sqlight_error(e)
+          |> Faulty
+        }
       }
-
-      cache
     }
+    Error(e) -> {
+      convert_sqlight_error(e)
+      |> Faulty
+    }
+  }
+}
+
+pub fn insert_image(cache: Cache, comic_number: Int, data: String) -> Cache {
+  use db <- with_cache(cache)
+  let insert_result =
+    sqlight.query(
+      insert_table_image_query,
+      db,
+      [sqlight.int(comic_number), sqlight.text(data)],
+      decode.list(decode.int),
+    )
+    |> result.map(list.flatten)
+
+  case insert_result {
+    Error(e) -> convert_sqlight_error(e) |> Faulty
+    Ok(result) -> {
+      let assert Cache(operations: prev_ops, ..) = cache
+      let new_ops = list.append(prev_ops, [Insert(result)])
+
+      Cache(..cache, operations: new_ops)
+    }
+  }
+}
+
+pub fn insert_comic(cache: Cache, comic comic: api.Xkcd) -> Cache {
+  use db <- with_cache(cache)
+  let api.Xkcd(
+    number:,
+    publication_date:,
+    link:,
+    news:,
+    safe_title:,
+    transcript:,
+    alternative_text:,
+    img_url:,
+    title:,
+  ) = comic
+
+  let insert_result =
+    sqlight.query(
+      insert_table_comic_query,
+      db,
+      [
+        sqlight.int(number),
+        sqlight.text(publication_date |> birl.to_http),
+        sqlight.nullable(sqlight.text, link),
+        sqlight.nullable(sqlight.text, news),
+        sqlight.text(safe_title),
+        sqlight.nullable(sqlight.text, transcript),
+        sqlight.text(alternative_text),
+        sqlight.text(img_url |> uri.to_string),
+        sqlight.text(title),
+      ],
+      decode.list(decode.int),
+    )
+    |> result.map(list.flatten)
+
+  case insert_result {
+    Ok(result) -> {
+      let assert Cache(operations: prev_ops, ..) = cache
+      let new_ops = list.append(prev_ops, [Insert(result)])
+
+      Cache(..cache, operations: new_ops)
+    }
+    Error(e) -> convert_sqlight_error(e) |> Faulty
   }
 }
