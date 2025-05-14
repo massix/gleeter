@@ -36,6 +36,7 @@ fn cache_insert_comic_tests(valid_cache: Cache) -> List(TestTree) {
   [
     it("insert new reference", fn() {
       let assert Ok(img_url) = uri.parse("https://example.com/img1.png")
+      let assert Ok(now) = birl.parse("2025-05-10T16:34:23.342Z")
       let comic =
         api.Xkcd(
           number: 320,
@@ -43,7 +44,7 @@ fn cache_insert_comic_tests(valid_cache: Cache) -> List(TestTree) {
           img_url:,
           link: option.Some("https://link"),
           news: option.None,
-          publication_date: birl.now(),
+          publication_date: now,
           safe_title: "Safe title",
           title: "Title",
           transcript: option.Some("Transcript"),
@@ -80,6 +81,43 @@ fn cache_insert_image_tests(valid_cache: Cache) -> List(TestTree) {
   ]
 }
 
+fn cache_get_comic_tests(valid_cache: Cache) -> List(TestTree) {
+  [
+    it("retrieve existing comic", fn() {
+      valid_cache
+      |> cache.get_comic(320)
+      |> expect.to_be_some
+      |> pprint.format
+      |> birdie.snap("cache_get_comic_ok")
+    }),
+    it("fails if comic does not exist", fn() {
+      valid_cache
+      |> cache.get_comic(1024)
+      |> expect.to_be_none
+    }),
+    it("returns empty data if there is no data", fn() {
+      let assert Ok(now) = birl.parse("2025-05-10T16:30:34Z")
+      let assert Ok(uri) = uri.parse("https://example.com/1.png")
+      valid_cache
+      |> cache.insert_comic(api.Xkcd(
+        now,
+        120,
+        option.None,
+        option.None,
+        "safe_title",
+        option.None,
+        "alt_text",
+        uri,
+        "title",
+      ))
+
+      valid_cache
+      |> cache.get_comic(120)
+      |> expect.to_be_none
+    }),
+  ]
+}
+
 pub fn cache_tests() {
   let valid_cache = cache.new(":memory:")
 
@@ -87,5 +125,6 @@ pub fn cache_tests() {
     describe("init", cache_init_tests(valid_cache)),
     describe("comic insert", cache_insert_comic_tests(valid_cache)),
     describe("image insert", cache_insert_image_tests(valid_cache)),
+    describe("get comic", cache_get_comic_tests(valid_cache)),
   ])
 }
