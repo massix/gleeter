@@ -1,16 +1,28 @@
 import gleam/list
 import kitty/graphics
 import simplifile
-import startest.{describe, it}
+import startest.{describe, it, xit}
 import startest/expect
 
 pub fn graphics_tests() {
   describe("kitty/graphics", [
+    terminal_size(),
     string_split_into_chunks_test(),
     image_to_chunk_test(),
     chunks_to_kitty_controls_test(),
     kitty_control_to_string_test(),
     to_kitty_protocol_string_test(),
+  ])
+}
+
+fn terminal_size() {
+  describe("terminal size", [
+    // FIXME: this (as expected) fails in CI and in nix build
+    xit("returns terminal size", fn() {
+      let #(x, y) = graphics.get_terminal_size()
+      expect.to_not_equal(x, 0)
+      expect.to_not_equal(y, 0)
+    }),
   ])
 }
 

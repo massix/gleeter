@@ -1,8 +1,12 @@
 import gleam/bit_array
+import gleam/erlang
+import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
 import gleam/string_tree
+import simplifile
+import term_size
 
 pub type Chunk {
   Chunk(data: String, size: Int)
@@ -125,5 +129,13 @@ pub fn string_split_into_chunks(
         list.append(acc, [Chunk(first_part, chunk_size)]),
       )
     }
+  }
+}
+
+/// Retrieve the current terminal size
+pub fn get_terminal_size() -> #(Int, Int) {
+  case term_size.get() {
+    Ok(x) -> x
+    Error(_) -> #(0, 0)
   }
 }
