@@ -1,6 +1,7 @@
 import birdie
 import birl
 import cache.{type Cache}
+import envoy
 import gleam/option
 import gleam/regexp
 import gleam/uri
@@ -122,6 +123,27 @@ pub fn cache_tests() {
   let valid_cache = cache.new(":memory:")
 
   describe("cache", [
+    describe("location", [
+      it("fetches the right environment variable", fn() {
+        envoy.set("XDG_CACHE_HOME", "/xdg-cache-home")
+        cache.get_cache_location()
+        |> expect.string_to_start_with("/xdg-cache-home")
+      }),
+      it("falls back to HOME if XDG_CACHE_HOME does not exist", fn() {
+        envoy.unset("XDG_CACHE_HOME")
+        envoy.set("HOME", "/home")
+
+        cache.get_cache_location()
+        |> expect.string_to_start_with("/home")
+      }),
+      it("falls back to :memory: if no variables are set", fn() {
+        envoy.unset("XDG_CACHE_HOME")
+        envoy.unset("HOME")
+
+        cache.get_cache_location()
+        |> expect.string_to_contain(":memory:")
+      }),
+    ]),
     describe("init", cache_init_tests(valid_cache)),
     describe("comic insert", cache_insert_comic_tests(valid_cache)),
     describe("image insert", cache_insert_image_tests(valid_cache)),

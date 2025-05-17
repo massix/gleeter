@@ -1,4 +1,5 @@
 import birl
+import envoy
 import gleam/dynamic/decode
 import gleam/int
 import gleam/list
@@ -81,6 +82,16 @@ fn with_cache_select(cache: Cache, f: fn(Connection) -> Option(a)) -> Option(a) 
   case cache {
     Faulty(_) -> option.None
     Cache(db:, ..) -> f(db)
+  }
+}
+
+pub fn get_cache_location() -> String {
+  let folder =
+    result.try_recover(envoy.get("XDG_CACHE_HOME"), fn(_) { envoy.get("HOME") })
+
+  case folder {
+    Ok(folder) -> folder <> "/gleeter-cache.sqlite3"
+    Error(_) -> ":memory:"
   }
 }
 

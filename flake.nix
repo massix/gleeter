@@ -7,7 +7,7 @@
       let
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) stdenv mkShell;
-        fixed-output-hash = "sha256-ItBtooPI5CMuBJPucrpipLkkRf/Se/Tqo09+9jNoORo=";
+        fixed-output-hash = "sha256-aLrV7joXAOS/nH3oGGU48gNPa0qgSbeB0iTw/GFqogo=";
       in
       {
         devShells.default = mkShell {
@@ -15,6 +15,7 @@
             erlang_27
             beam27Packages.rebar3
             gleam
+            sqlite
           ];
         };
         overlays = _: _: { gleeter = self.packages.${system}.default; };
