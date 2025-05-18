@@ -68,18 +68,14 @@ pub fn api_decoder(in: String) -> Result(Xkcd, APIError) {
   use publication_date <- result.try(to_birl_time(year:, month:, day:))
 
   let main_decoder = {
-    let to_optional = fn(s: String) -> option.Option(String) {
-      case s {
-        "" -> option.None
-        _ -> option.Some(s)
-      }
-    }
-
     use number <- decode.field("num", decode.int)
-    use link <- decode.optional_field("link", "", decode.string)
-    use news <- decode.optional_field("news", "", decode.string)
+    use link <- decode.field("link", decode.string |> decode.optional)
+    use news <- decode.field("news", decode.string |> decode.optional)
     use safe_title <- decode.optional_field("safe_title", "", decode.string)
-    use transcript <- decode.optional_field("transcript", "", decode.string)
+    use transcript <- decode.field(
+      "transcript",
+      decode.string |> decode.optional,
+    )
     use alternative_text <- decode.field("alt", decode.string)
     use img_url <- decode.field("img", decode.string)
     use title <- decode.field("title", decode.string)
@@ -92,10 +88,10 @@ pub fn api_decoder(in: String) -> Result(Xkcd, APIError) {
     decode.success(Xkcd(
       publication_date:,
       number:,
-      link: to_optional(link),
-      news: to_optional(news),
+      link:,
+      news:,
       safe_title:,
-      transcript: to_optional(transcript),
+      transcript:,
       alternative_text:,
       img_url: img_url,
       title:,
