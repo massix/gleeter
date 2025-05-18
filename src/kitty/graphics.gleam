@@ -1,11 +1,8 @@
 import gleam/bit_array
-import gleam/erlang
-import gleam/io
 import gleam/list
 import gleam/result
 import gleam/string
 import gleam/string_tree
-import simplifile
 import term_size
 
 pub type Chunk {
@@ -69,11 +66,11 @@ pub fn chunks_to_kitty_controls(
 ) -> List(KittyControl) {
   case chunks {
     [] -> acc
-    [Chunk(data, size), ..rest] -> {
+    [Chunk(data:, ..), ..rest] -> {
       let option = {
-        case size {
-          x if x == chunk_size -> [#("m", "1")]
-          _ -> []
+        case list.is_empty(rest) {
+          True -> []
+          False -> [#("m", "1")]
         }
       }
 
