@@ -1,0 +1,33 @@
+---
+version: 1.2.7
+title: cache_get_comic_ok
+file: ./test/cache_test.gleam
+test_name: cache_get_comic_tests
+---
+ComicWithData(
+  Xkcd(
+    Time(
+      1746894863000000,
+      0,
+      None,
+      None,
+    ),
+    320,
+    Some("https://link"),
+    None,
+    "Safe title",
+    Some("Transcript"),
+    "alt_text",
+    Uri(
+      Some("https"),
+      None,
+      Some("example.com"),
+      None,
+      "/img1.png",
+      None,
+      None,
+    ),
+    "Title",
+  ),
+  "comic_data",
+)

@@ -1,6 +1,6 @@
 import birl
-import gleam/bytes_builder
-import gleam/dynamic
+import gleam/bytes_tree
+import gleam/dynamic/decode
 import gleam/hackney
 import gleam/http/request
 import gleam/http/response
@@ -8,7 +8,6 @@ import gleam/int
 import gleam/json
 import gleam/option
 import gleam/result
-import gleam/string
 import gleam/uri
 
 const base_url = "https://xkcd.com"
@@ -49,54 +48,57 @@ pub fn api_decoder(in: String) -> Result(Xkcd, APIError) {
       json.UnexpectedByte(b) -> DecodeError("Unexpected byte: " <> b)
       json.UnexpectedSequence(s) -> DecodeError("Unexpected sequence: " <> s)
       json.UnexpectedFormat(_) -> DecodeError("Unexpected format")
+      json.UnableToDecode(_) -> DecodeError("Unable to decode")
     }
   }
 
-  let day = dynamic.field("day", dynamic.string)
-  let month = dynamic.field("month", dynamic.string)
-  let year = dynamic.field("year", dynamic.string)
-  let link = fn(in: dynamic.Dynamic) {
-    use as_string <- result.try(dynamic.string(in))
+  let parse_date = {
+    use day <- decode.field("day", decode.string)
+    use month <- decode.field("month", decode.string)
+    use year <- decode.field("year", decode.string)
 
-    uri.parse(as_string)
-    |> result.map_error(fn(_) { [dynamic.DecodeError("uri", "not an uri", [])] })
-  }
-  let maybe_empty_string = fn(in: dynamic.Dynamic) {
-    dynamic.string(in)
-    |> result.map(string.to_option)
+    decode.success(#(day, month, year))
   }
 
-  use decoded_day <- result.try(
-    json.decode(in, day) |> result.map_error(to_apierror),
-  )
-  use decoded_month <- result.try(
-    json.decode(in, month) |> result.map_error(to_apierror),
-  )
-  use decoded_year <- result.try(
-    json.decode(in, year) |> result.map_error(to_apierror),
+  use #(day, month, year) <- result.try(
+    json.parse(in, parse_date)
+    |> result.map_error(fn(_) { DecodeError("Could not parse date") }),
   )
 
-  use birl_time <- result.try(to_birl_time(
-    year: decoded_year,
-    month: decoded_month,
-    day: decoded_day,
-  ))
+  use publication_date <- result.try(to_birl_time(year:, month:, day:))
 
-  let decoder =
-    dynamic.decode9(
-      Xkcd,
-      fn(_) { Ok(birl_time) },
-      dynamic.field("num", dynamic.int),
-      dynamic.field("link", maybe_empty_string),
-      dynamic.field("news", maybe_empty_string),
-      dynamic.field("safe_title", dynamic.string),
-      dynamic.field("transcript", maybe_empty_string),
-      dynamic.field("alt", dynamic.string),
-      dynamic.field("img", link),
-      dynamic.field("title", dynamic.string),
+  let main_decoder = {
+    use number <- decode.field("num", decode.int)
+    use link <- decode.field("link", decode.string |> decode.optional)
+    use news <- decode.field("news", decode.string |> decode.optional)
+    use safe_title <- decode.optional_field("safe_title", "", decode.string)
+    use transcript <- decode.field(
+      "transcript",
+      decode.string |> decode.optional,
     )
+    use alternative_text <- decode.field("alt", decode.string)
+    use img_url <- decode.field("img", decode.string)
+    use title <- decode.field("title", decode.string)
 
-  json.decode(in, decoder)
+    let img_url = case uri.parse(img_url) {
+      Ok(uri) -> uri
+      Error(_) -> uri.empty
+    }
+
+    decode.success(Xkcd(
+      publication_date:,
+      number:,
+      link:,
+      news:,
+      safe_title:,
+      transcript:,
+      alternative_text:,
+      img_url: img_url,
+      title:,
+    ))
+  }
+
+  json.parse(in, main_decoder)
   |> result.map_error(to_apierror)
 }
 
@@ -152,7 +154,7 @@ pub fn get_random() -> Result(Xkcd, APIError) {
 pub fn get_image(in: Xkcd) -> Result(BitArray, APIError) {
   use request <- result.try(
     request.from_uri(in.img_url)
-    |> result.map(request.set_body(_, bytes_builder.new()))
+    |> result.map(request.set_body(_, bytes_tree.new()))
     |> result.map_error(fn(_) { RequestError("Could not create request") }),
   )
 

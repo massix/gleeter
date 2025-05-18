@@ -3,58 +3,80 @@
   inputs.flake-utils.url = "github:numtide/flake-utils";
 
   outputs = { self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" "aarch64-linux" ] (system:
       let
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) stdenv mkShell;
+        fixed-output-hash = "sha256-aLrV7joXAOS/nH3oGGU48gNPa0qgSbeB0iTw/GFqogo=";
+        version = "1.1.0";
+        pname = "gleeter";
+        gleamPackages = stdenv.mkDerivation {
+          inherit version;
+          pname = "${pname}-gleam-packages";
+
+          nativeBuildInputs = with pkgs; [ gleam ];
+          src = builtins.filterSource
+            (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) ./.;
+
+          buildPhase = ''
+            export HOME=$PWD
+            gleam deps download
+            grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
+            echo -e "[packages]\n" > build/packages/packages.toml
+            cat packages.toml >> build/packages/packages.toml
+            rm packages.toml
+          '';
+
+          installPhase = ''
+            runHook preInstallHook
+            mkdir -p $out
+            cp --recursive build $out/
+            runHook postInstallHook
+          '';
+
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+          outputHash = fixed-output-hash;
+        };
+
       in
       {
         devShells.default = mkShell {
-          packages = with pkgs; [ erlang_27 rebar3 gleam ];
+          packages = with pkgs; [
+            erlang_27
+            beam27Packages.rebar3
+            gleam
+            sqlite
+          ];
         };
         overlays = _: _: { gleeter = self.packages.${system}.default; };
         packages.default = stdenv.mkDerivation rec {
-          pname = "gleeter";
-          version = "1.0.0";
-
-          gleamPackages = stdenv.mkDerivation {
-            inherit version;
-            pname = "${pname}-gleam-packages";
-
-            nativeBuildInputs = with pkgs; [ gleam ];
-            src = builtins.filterSource
-              (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) ./.;
-
-            buildPhase = ''
-              mkdir -p $out
-              HOME=$PWD gleam deps download
-              grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
-              echo -e "[packages]\n" > build/packages/packages.toml
-              cat packages.toml >> build/packages/packages.toml
-              rm packages.toml
-            '';
-
-            installPhase = ''
-              mkdir -p $out/build/
-              cp --recursive build/packages $out/build/
-            '';
-
-            outputHashAlgo = "sha256";
-            outputHashMode = "recursive";
-            outputHash = "sha256-CS4tBFm4dSgd4zRCNJ7+6JwH+AYnAVGuxSzmwZxjDTE=";
-          };
+          inherit pname version;
 
           src = builtins.filterSource
             (path: _: ! builtins.elem (baseNameOf path) [ "build" ".git" ".direnv" ".envrc" ])
             ./.;
 
-          nativeBuildInputs = with pkgs; [ gleam rebar3 which gleamPackages ];
-          buildInputs = with pkgs; [ erlang_27 ];
+          nativeBuildInputs = with pkgs; [
+            gleam
+            (rebar3WithPlugins {
+              plugins = with pkgs.beamPackages; [
+                ex_doc
+                pc
+                hex
+              ];
+            })
+            gleamPackages
+          ];
+
+          buildInputs = with pkgs; [
+            erlang_27
+          ];
 
           doCheck = true;
 
           configurePhase = ''
-            cp -r ${gleamPackages}/build build
+            cp --recursive ${gleamPackages}/build .
             chmod -R 0755 build
           '';
 
@@ -64,7 +86,7 @@
 
           buildPhase = ''
             runHook preBuildHook
-            HOME=$PWD make package
+            HOME=$PWD gleam export erlang-shipment
             runHook postBuildHook
           '';
 
@@ -84,7 +106,7 @@
           meta = with pkgs.lib; {
             description = "Fetch and display XKCD comics directly in the terminal";
             mainProgram = "gleeter";
-            homepage = "https://github.com/massix/gleeter.git";
+            homepage = "https://github.com/massix/gleeter";
             license = licenses.mit;
             maintainers = [ maintainers.massimogengarelli ];
           };

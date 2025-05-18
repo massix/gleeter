@@ -2,7 +2,8 @@ import gleam/bit_array
 import gleam/list
 import gleam/result
 import gleam/string
-import gleam/string_builder
+import gleam/string_tree
+import term_size
 
 pub type Chunk {
   Chunk(data: String, size: Int)
@@ -18,15 +19,15 @@ pub fn kitty_control_to_string(in: KittyControl) -> String {
     key <> "=" <> value
   }
 
-  string_builder.new()
-  |> string_builder.append("\u{001b}_G")
-  |> string_builder.append(
+  string_tree.new()
+  |> string_tree.append("\u{001b}_G")
+  |> string_tree.append(
     list.map(in.options, tuple_to_string) |> string.join(","),
   )
-  |> string_builder.append(";")
-  |> string_builder.append(in.payload)
-  |> string_builder.append("\u{001b}\\")
-  |> string_builder.to_string
+  |> string_tree.append(";")
+  |> string_tree.append(in.payload)
+  |> string_tree.append("\u{001b}\\")
+  |> string_tree.to_string
 }
 
 pub type GraphicsError {
@@ -65,11 +66,11 @@ pub fn chunks_to_kitty_controls(
 ) -> List(KittyControl) {
   case chunks {
     [] -> acc
-    [Chunk(data, size), ..rest] -> {
+    [Chunk(data:, ..), ..rest] -> {
       let option = {
-        case size {
-          x if x == chunk_size -> [#("m", "1")]
-          _ -> []
+        case list.is_empty(rest) {
+          True -> []
+          False -> [#("m", "1")]
         }
       }
 
@@ -125,5 +126,13 @@ pub fn string_split_into_chunks(
         list.append(acc, [Chunk(first_part, chunk_size)]),
       )
     }
+  }
+}
+
+/// Retrieve the current terminal size
+pub fn get_terminal_size() -> #(Int, Int) {
+  case term_size.get() {
+    Ok(x) -> x
+    Error(_) -> #(0, 0)
   }
 }
