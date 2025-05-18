@@ -79,13 +79,18 @@ fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
   })
 
   let cache.ComicWithData(xkcd, body) = cached_comic
-  let api.Xkcd(publication_date:, title:, alternative_text:, number:, ..) = xkcd
+  let api.Xkcd(publication_date:, title:, alternative_text:, number:, link:, ..) =
+    xkcd
   io.print("[" <> int.to_string(number) <> "] ")
   io.print(title)
   io.print("   ")
-  io.println(birl.to_date_string(publication_date))
-  io.println(body)
+  io.print(birl.to_date_string(publication_date))
+  io.print("   ")
+  io.println("https://xkcd.com/" <> int.to_string(number))
+  io.println(body |> inject_terminal_size)
   io.println(alternative_text)
+  option.unwrap(link, "")
+  |> io.println()
 
   Ok(Nil)
 }
