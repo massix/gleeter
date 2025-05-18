@@ -7,6 +7,7 @@ import gleam/int
 import gleam/io
 import gleam/option
 import gleam/result
+import gleam/string
 import kitty/graphics
 import xkcd/api
 
@@ -63,6 +64,13 @@ fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
       Ok(cache.ComicWithData(xkcd, body))
     }
   }
+}
+
+// PERF: temporary hack to inject terminal size information
+fn inject_terminal_size(in: String) -> String {
+  let #(_, y) = graphics.get_terminal_size()
+  let y = int.max(y / 2, 32) |> int.to_string
+  string.replace(in, "a=T,f=100", "a=T,f=100,X=10,Y=10,c=" <> y)
 }
 
 fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
