@@ -8,6 +8,37 @@
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) stdenv mkShell;
         fixed-output-hash = "sha256-aLrV7joXAOS/nH3oGGU48gNPa0qgSbeB0iTw/GFqogo=";
+        version = "1.1.0";
+        pname = "gleeter";
+        gleamPackages = stdenv.mkDerivation {
+          inherit version;
+          pname = "${pname}-gleam-packages";
+
+          nativeBuildInputs = with pkgs; [ gleam ];
+          src = builtins.filterSource
+            (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) ./.;
+
+          buildPhase = ''
+            export HOME=$PWD
+            gleam deps download
+            grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
+            echo -e "[packages]\n" > build/packages/packages.toml
+            cat packages.toml >> build/packages/packages.toml
+            rm packages.toml
+          '';
+
+          installPhase = ''
+            runHook preInstallHook
+            mkdir -p $out
+            cp --recursive build $out/
+            runHook postInstallHook
+          '';
+
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+          outputHash = fixed-output-hash;
+        };
+
       in
       {
         devShells.default = mkShell {
@@ -20,37 +51,7 @@
         };
         overlays = _: _: { gleeter = self.packages.${system}.default; };
         packages.default = stdenv.mkDerivation rec {
-          pname = "gleeter";
-          version = "1.1.0";
-
-          gleamPackages = stdenv.mkDerivation {
-            inherit version;
-            pname = "${pname}-gleam-packages";
-
-            nativeBuildInputs = with pkgs; [ gleam ];
-            src = builtins.filterSource
-              (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) ./.;
-
-            buildPhase = ''
-              export HOME=$PWD
-              gleam deps download
-              grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
-              echo -e "[packages]\n" > build/packages/packages.toml
-              cat packages.toml >> build/packages/packages.toml
-              rm packages.toml
-            '';
-
-            installPhase = ''
-              runHook preInstallHook
-              mkdir -p $out
-              cp --recursive build $out/
-              runHook postInstallHook
-            '';
-
-            outputHashAlgo = "sha256";
-            outputHashMode = "recursive";
-            outputHash = fixed-output-hash;
-          };
+          inherit pname version;
 
           src = builtins.filterSource
             (path: _: ! builtins.elem (baseNameOf path) [ "build" ".git" ".direnv" ".envrc" ])
