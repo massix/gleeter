@@ -1,4 +1,4 @@
-name: Test
+name: Unit tests and nix build
 on:
   push:
     branches: [main]
