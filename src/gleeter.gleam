@@ -13,7 +13,7 @@ import kitty/graphics
 import png
 import xkcd/api
 
-const gleeter_version = "1.1.0"
+const gleeter_version = "1.1.1"
 
 type PrintComic {
   Latest
