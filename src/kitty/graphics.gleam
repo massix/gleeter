@@ -69,7 +69,7 @@ pub fn chunks_to_kitty_controls(
     [Chunk(data:, ..), ..rest] -> {
       let option = {
         case list.is_empty(rest) {
-          True -> []
+          True -> [#("m", "0")]
           False -> [#("m", "1")]
         }
       }

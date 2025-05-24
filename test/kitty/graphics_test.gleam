@@ -91,14 +91,14 @@ fn chunks_to_kitty_controls_test() {
     it("single chunk", fn() {
       [graphics.Chunk("payload", 7)]
       |> graphics.chunks_to_kitty_controls(1024, [])
-      |> expect.to_equal([graphics.KittyControl([], "payload")])
+      |> expect.to_equal([graphics.KittyControl([#("m", "0")], "payload")])
     }),
     it("multiple chunks", fn() {
       [graphics.Chunk("payl", 4), graphics.Chunk("oad", 3)]
       |> graphics.chunks_to_kitty_controls(4, [])
       |> expect.to_equal([
         graphics.KittyControl([#("m", "1")], "payl"),
-        graphics.KittyControl([], "oad"),
+        graphics.KittyControl([#("m", "0")], "oad"),
       ])
     }),
   ])
