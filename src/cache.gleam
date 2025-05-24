@@ -1,4 +1,5 @@
 import birl
+import debug.{debug_print, debug_print_x}
 import envoy
 import gleam/dynamic/decode
 import gleam/int
@@ -19,7 +20,7 @@ pub type Operation {
 }
 
 pub type ComicWithData {
-  ComicWithData(comic: api.Xkcd, data: String)
+  ComicWithData(comic: api.Xkcd, data: String, raw_data: BitArray)
 }
 
 const create_table_query = "
@@ -39,7 +40,8 @@ const create_table_query = "
 
   create table if not exists images(
     comic_number int primary key references comics(number),
-    image_data text not null
+    image_data text not null,
+    raw_data blob not null
   );
 "
 
@@ -50,13 +52,13 @@ const insert_table_comic_query = "
 "
 
 const insert_table_image_query = "
-  insert into images(comic_number, image_data)
-  values(?, ?)
+  insert into images(comic_number, image_data, raw_data)
+  values(?, ?, ?)
   returning comic_number
 "
 
 const select_comic_query = "
-  select c.*, i.image_data from comics c join images i on i.comic_number = c.number where c.number = ?
+  select c.*, i.image_data, i.raw_data from comics c join images i on i.comic_number = c.number where c.number = ?
 "
 
 fn convert_sqlight_error(in: sqlight.Error) -> String {
@@ -96,12 +98,14 @@ pub fn get_cache_location() -> String {
 }
 
 pub fn new(path: String) -> Cache {
+  debug_print("Opening cache at " <> path)
   case sqlight.open(path) {
     Ok(db) -> {
       case sqlight.exec(create_table_query, db) {
         Ok(_) -> Cache(path, db, [])
         Error(e) -> {
           convert_sqlight_error(e)
+          |> echo
           |> Faulty
         }
       }
@@ -109,17 +113,24 @@ pub fn new(path: String) -> Cache {
     Error(e) -> {
       convert_sqlight_error(e)
       |> Faulty
+      |> debug_print_x("Failed to open cache")
     }
   }
 }
 
-pub fn insert_image(cache: Cache, comic_number: Int, data: String) -> Cache {
+pub fn insert_image(
+  cache: Cache,
+  comic_number: Int,
+  data: String,
+  raw_data: BitArray,
+) -> Cache {
+  debug_print("Inserting image for comic " <> int.to_string(comic_number))
   use db <- with_cache_insert(cache)
   let insert_result =
     sqlight.query(
       insert_table_image_query,
       db,
-      [sqlight.int(comic_number), sqlight.text(data)],
+      [sqlight.int(comic_number), sqlight.text(data), sqlight.blob(raw_data)],
       decode.list(decode.int),
     )
     |> result.map(list.flatten)
@@ -136,6 +147,7 @@ pub fn insert_image(cache: Cache, comic_number: Int, data: String) -> Cache {
 }
 
 pub fn insert_comic(cache: Cache, comic comic: api.Xkcd) -> Cache {
+  debug_print("Inserting comic " <> int.to_string(comic.number))
   use db <- with_cache_insert(cache)
   let api.Xkcd(
     number:,
@@ -181,6 +193,7 @@ pub fn insert_comic(cache: Cache, comic comic: api.Xkcd) -> Cache {
 
 pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
   use db <- with_cache_select(cache)
+  debug_print("Getting comic " <> int.to_string(number))
 
   let decoder = {
     use number <- decode.field(0, decode.int)
@@ -193,6 +206,7 @@ pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
     use img_url <- decode.field(7, decode.string)
     use title <- decode.field(8, decode.string)
     use comic_data <- decode.field(9, decode.string)
+    use raw_data <- decode.field(10, decode.bit_array)
 
     let assert Ok(publication_date) = birl.from_http(publication_date)
     let assert Ok(img_url) = uri.parse(img_url)
@@ -210,6 +224,7 @@ pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
         title:,
       ),
       comic_data,
+      raw_data,
     ))
   }
 
@@ -218,7 +233,7 @@ pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
     |> result.unwrap([])
 
   case list.first(result) {
-    Ok(e) -> option.Some(e)
-    Error(_) -> option.None
+    Ok(e) -> option.Some(e) |> debug_print_x("Found result in cache")
+    Error(_) -> option.None |> debug_print_x("No result in cache")
   }
 }

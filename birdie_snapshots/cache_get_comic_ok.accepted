@@ -30,4 +30,5 @@ ComicWithData(
     "Title",
   ),
   "comic_data",
+  "Image Data",
 )

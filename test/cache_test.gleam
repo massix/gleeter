@@ -67,14 +67,14 @@ fn cache_insert_image_tests(valid_cache: Cache) -> List(TestTree) {
       let comic_data = "comic_data"
 
       valid_cache
-      |> cache.insert_image(comic_number, comic_data)
+      |> cache.insert_image(comic_number, comic_data, <<"Image Data":utf8>>)
       |> pprint.format
       |> remove_erlref
       |> birdie.snap("cache_insert_image_ok")
     }),
     it("fail if fk not respected", fn() {
       valid_cache
-      |> cache.insert_image(321, "comic_data")
+      |> cache.insert_image(321, "comic_data", <<>>)
       |> pprint.format
       |> remove_erlref
       |> birdie.snap("cache_insert_image_ko")

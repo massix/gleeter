@@ -2,13 +2,15 @@ import application_behavior
 import birl
 import birl/duration
 import cache
-import envoy
+import debug.{debug_print}
+import gleam/float
 import gleam/int
 import gleam/io
 import gleam/option
 import gleam/result
 import gleam/string
 import kitty/graphics
+import png
 import xkcd/api
 
 const gleeter_version = "1.1.0"
@@ -44,11 +46,12 @@ fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
         xkcd
         |> result.map_error(print_api_error),
       )
-      use body <- result.try(
+      use raw_data <- result.try(
         api.get_image(xkcd) |> result.map_error(print_api_error),
       )
+
       use body <- result.try(
-        graphics.to_kitty_protocol_string(body, 4096)
+        graphics.to_kitty_protocol_string(raw_data, 4096)
         |> result.map_error(fn(e) {
           case e {
             graphics.ChunkSizeTooBig -> io.println("Chunk size is too big!")
@@ -59,9 +62,9 @@ fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
       )
 
       cache.insert_comic(cache, xkcd)
-      |> cache.insert_image(xkcd.number, body)
+      |> cache.insert_image(xkcd.number, body, raw_data)
 
-      Ok(cache.ComicWithData(xkcd, body))
+      Ok(cache.ComicWithData(xkcd, body, raw_data))
     }
   }
 }
@@ -86,7 +89,9 @@ fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
     ID(id) -> get_comic(cache, id)
   })
 
-  let cache.ComicWithData(xkcd, body) = cached_comic
+  let cache.ComicWithData(xkcd, body, raw_data) = cached_comic
+  use image_size <- result.try(png.get_image_size(raw_data))
+
   let api.Xkcd(publication_date:, title:, alternative_text:, number:, link:, ..) =
     xkcd
   io.print("[" <> int.to_string(number) <> "] ")
@@ -95,7 +100,7 @@ fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
   io.print(birl.to_date_string(publication_date))
   io.print("   ")
   io.println("https://xkcd.com/" <> int.to_string(number))
-  io.println(body |> inject_terminal_size)
+  io.println(body |> resize_image(image_size))
   io.println(alternative_text)
   option.unwrap(link, "")
   |> io.println()
@@ -117,10 +122,6 @@ pub fn main() -> Result(Nil, Nil) {
   let duration =
     birl.difference(end, now) |> duration.blur_to(duration.MilliSecond)
 
-  case envoy.get("GLEETER_DEBUG") {
-    Ok(_) -> io.println("Duration: " <> int.to_string(duration) <> "ms")
-    Error(_) -> Nil
-  }
-
+  debug_print("Duration: " <> int.to_string(duration) <> "ms")
   r
 }
