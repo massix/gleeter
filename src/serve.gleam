@@ -8,6 +8,7 @@ import gleam/int
 import gleam/io
 import gleam/option
 import gleam/result
+import gleam/uri
 import kitty/graphics
 import messua
 import messua/err
@@ -125,20 +126,42 @@ fn to_printable(in: cache.ComicWithData) -> bytes_tree.BytesTree {
   |> bytes_tree.append_string(option.unwrap(in.comic.link, ""))
 }
 
+/// Given a base path and a path, strip the base path from the path
+fn strip_base_path(
+  base_path: List(String),
+  received_path: List(String),
+) -> Result(List(String), Nil) {
+  case base_path, received_path {
+    [], rest -> Ok(rest)
+    [x, ..xs], [y, ..ys] if x == y -> strip_base_path(xs, ys)
+    [_, ..], [_, ..] -> Error(Nil)
+    _, [] -> Error(Nil)
+  }
+}
+
 fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
   io.println("Serving at base path: " <> base_path)
+  let base_path = uri.path_segments(base_path)
+
   fn(s: StatefulRequest) -> rr.MResponse {
     let cache = rr.state(s)
+    let path_segments =
+      base_path
+      |> strip_base_path(handle.path_segments(s))
 
-    let result = case handle.path_segments(s) {
-      ["random"] -> handle_random(cache)
-      ["id", id] -> {
-        case int.parse(id) {
-          Ok(num) -> handle_id(cache, num)
-          Error(_) -> Error(Nil)
+    let result = case path_segments {
+      Ok(l) ->
+        case l {
+          ["random"] -> handle_random(cache)
+          ["id", id] -> {
+            case int.parse(id) {
+              Ok(num) -> handle_id(cache, num)
+              Error(_) -> Error(Nil)
+            }
+          }
+          ["latest"] | [] | _ -> handle_latest()
         }
-      }
-      ["latest"] | [] | _ -> handle_latest()
+      _ -> Error(Nil)
     }
 
     case result {
