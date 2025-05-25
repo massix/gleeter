@@ -9,6 +9,7 @@ import gleam/json
 import gleam/option
 import gleam/result
 import gleam/uri
+import version
 
 const base_url = "https://xkcd.com"
 
@@ -112,6 +113,7 @@ fn hackney_error_to_apierror(in: hackney.Error) -> APIError {
 fn download(in: uri.Uri) -> Result(Xkcd, APIError) {
   use request <- result.try(
     request.from_uri(in)
+    |> result.map(request.set_header(_, "User-Agent", version.user_agent))
     |> result.map_error(fn(_) { RequestError("Could not create request") }),
   )
 

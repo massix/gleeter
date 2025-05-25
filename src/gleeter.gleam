@@ -12,9 +12,8 @@ import gleam/string
 import kitty/graphics
 import png
 import serve
+import version
 import xkcd/api
-
-const gleeter_version = "1.2.0"
 
 type PrintComic {
   Latest
@@ -31,7 +30,9 @@ fn print_api_error(in: api.APIError) -> Nil {
 }
 
 fn print_version() -> Result(Nil, Nil) {
-  Ok(io.println("gleeter v" <> gleeter_version))
+  Ok(io.println(
+    "gleeter v" <> version.gleeter_version <> " " <> version.github_url,
+  ))
 }
 
 // Get a comic from the cache or fetch it from the APIs and then store in the cache
