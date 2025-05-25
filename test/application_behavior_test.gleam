@@ -5,36 +5,34 @@ import startest/expect
 pub fn application_behavior_tests() {
   describe("application_behavior", [
     it("default behavior", fn() {
-      application_behavior.parse_arguments([], application_behavior.RandomComic)
-      |> expect.to_equal(application_behavior.RandomComic)
-    }),
-    it("last argument wins", fn() {
-      application_behavior.parse_arguments(
-        ["random", "latest", "id", "4", "latest"],
-        application_behavior.RandomComic,
-      )
-      |> expect.to_equal(application_behavior.LatestComic)
+      application_behavior.parse_arguments([])
+      |> expect.to_equal(application_behavior.PrintVersion)
     }),
     it("if id is invalid, fails silently", fn() {
-      application_behavior.parse_arguments(
-        ["id", "not a number"],
-        application_behavior.LatestComic,
-      )
+      application_behavior.parse_arguments(["id", "not a number"])
       |> expect.to_equal(application_behavior.LatestComic)
     }),
     it("if id is valid, behavior is changed", fn() {
-      application_behavior.parse_arguments(
-        ["id", "14"],
-        application_behavior.RandomComic,
-      )
+      application_behavior.parse_arguments(["id", "14"])
       |> expect.to_equal(application_behavior.WithIDComic(14))
     }),
-    it("version should override everything", fn() {
-      application_behavior.parse_arguments(
-        ["id", "24", "version", "random", "latest"],
-        application_behavior.RandomComic,
-      )
-      |> expect.to_equal(application_behavior.PrintVersion)
-    }),
+    describe("serve", [
+      it("witout parameters", fn() {
+        application_behavior.parse_arguments(["serve"])
+        |> expect.to_equal(application_behavior.Serve(8080, ""))
+      }),
+      it("port specified", fn() {
+        application_behavior.parse_arguments(["serve", "9000"])
+        |> expect.to_equal(application_behavior.Serve(9000, ""))
+      }),
+      it("port not an int", fn() {
+        application_behavior.parse_arguments(["serve", "not a number"])
+        |> expect.to_equal(application_behavior.Serve(8080, ""))
+      }),
+      it("port and path specified", fn() {
+        application_behavior.parse_arguments(["serve", "9000", "/xkcd"])
+        |> expect.to_equal(application_behavior.Serve(9000, "/xkcd"))
+      }),
+    ]),
   ])
 }

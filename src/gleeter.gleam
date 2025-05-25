@@ -11,6 +11,7 @@ import gleam/result
 import gleam/string
 import kitty/graphics
 import png
+import serve
 import xkcd/api
 
 const gleeter_version = "1.1.1"
@@ -160,6 +161,7 @@ pub fn main() -> Result(Nil, Nil) {
     application_behavior.LatestComic -> print_comic(cache, Latest)
     application_behavior.RandomComic -> print_comic(cache, Random)
     application_behavior.WithIDComic(id) -> print_comic(cache, ID(id))
+    application_behavior.Serve(p, b) -> serve.serve(p, b, cache) |> Ok
   }
   let end = birl.now()
 

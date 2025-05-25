@@ -7,7 +7,7 @@
       let
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) stdenv mkShell;
-        fixed-output-hash = "sha256-aLrV7joXAOS/nH3oGGU48gNPa0qgSbeB0iTw/GFqogo=";
+        fixed-output-hash = "sha256-DIY9OA3ZigaVC2gxvwgCrF8rjNIraSy7mVqudp62x4M=";
         version = "1.1.1";
         pname = "gleeter";
         gleamPackages = stdenv.mkDerivation {
