@@ -14,7 +14,7 @@ import png
 import serve
 import xkcd/api
 
-const gleeter_version = "1.1.1"
+const gleeter_version = "1.2.0"
 
 type PrintComic {
   Latest
