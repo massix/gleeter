@@ -50,7 +50,7 @@
           ];
         };
         overlays = _: _: { gleeter = self.packages.${system}.default; };
-        packages.default = stdenv.mkDerivation rec {
+        packages.gleeter = stdenv.mkDerivation {
           inherit pname version;
 
           src = builtins.filterSource
@@ -69,7 +69,7 @@
             gleamPackages
           ];
 
-          buildInputs = with pkgs; [
+          propagatedBuildInputs = with pkgs; [
             erlang_27
           ];
 
@@ -111,6 +111,6 @@
             maintainers = [ maintainers.massimogengarelli ];
           };
         };
-        app.default = self.packages.default;
+        packages.default = self.packages.${system}.gleeter;
       });
 }
