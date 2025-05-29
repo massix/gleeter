@@ -1,5 +1,6 @@
 import gleam/list
 import kitty/graphics
+import png
 import simplifile
 import startest.{describe, it, xit}
 import startest/expect
@@ -7,6 +8,7 @@ import startest/expect
 pub fn graphics_tests() {
   describe("kitty/graphics", [
     terminal_size(),
+    image_size(),
     string_split_into_chunks_test(),
     image_to_chunk_test(),
     chunks_to_kitty_controls_test(),
@@ -17,11 +19,38 @@ pub fn graphics_tests() {
 
 fn terminal_size() {
   describe("terminal size", [
-    // FIXME: this (as expected) fails in CI and in nix build
     xit("returns terminal size", fn() {
-      let #(x, y) = graphics.get_terminal_size()
-      expect.to_not_equal(x, 0)
-      expect.to_not_equal(y, 0)
+      let graphics.TerminalSize(rows:, columns:) = graphics.get_terminal_size()
+      expect.to_not_equal(columns, 0)
+      expect.to_not_equal(rows, 0)
+
+      Nil
+    }),
+  ])
+}
+
+fn image_size() {
+  describe("image size", [
+    it("square", fn() {
+      let terminal_size = graphics.TerminalSize(rows: 24, columns: 80)
+      let image_size = png.ImageSize(width: 100, height: 100)
+
+      graphics.calculate_new_size(image_size, terminal_size)
+      |> expect.to_equal(#(19, 38))
+    }),
+    it("wider", fn() {
+      let terminal_size = graphics.TerminalSize(rows: 100, columns: 240)
+      let image_size = png.ImageSize(width: 400, height: 100)
+
+      graphics.calculate_new_size(image_size, terminal_size)
+      |> expect.to_equal(#(24, 192))
+    }),
+    it("taller", fn() {
+      let terminal_size = graphics.TerminalSize(rows: 100, columns: 240)
+      let image_size = png.ImageSize(width: 100, height: 400)
+
+      graphics.calculate_new_size(image_size, terminal_size)
+      |> expect.to_equal(#(80, 40))
     }),
   ])
 }

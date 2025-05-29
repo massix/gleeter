@@ -1,8 +1,12 @@
+import debug.{debug_print}
 import gleam/bit_array
+import gleam/float
+import gleam/int
 import gleam/list
 import gleam/result
 import gleam/string
 import gleam/string_tree
+import png
 import term_size
 
 pub type Chunk {
@@ -129,10 +133,73 @@ pub fn string_split_into_chunks(
   }
 }
 
+pub type TerminalSize {
+  TerminalSize(rows: Int, columns: Int)
+}
+
 /// Retrieve the current terminal size
-pub fn get_terminal_size() -> #(Int, Int) {
+pub fn get_terminal_size() -> TerminalSize {
   case term_size.get() {
-    Ok(x) -> x
-    Error(_) -> #(0, 0)
+    Ok(x) -> TerminalSize(x.0, x.1)
+    Error(_) -> TerminalSize(0, 0)
   }
+}
+
+pub type Rows =
+  Int
+
+pub type Columns =
+  Int
+
+pub fn calculate_new_size(
+  image_size: png.ImageSize,
+  terminal_size: TerminalSize,
+) -> #(Rows, Columns) {
+  let TerminalSize(columns:, rows:) = terminal_size
+  let png.ImageSize(width:, height:) = image_size
+  debug_print(
+    "Image size: " <> int.to_string(width) <> "x" <> int.to_string(height),
+  )
+
+  let image_aspect = int.to_float(width) /. int.to_float(height)
+
+  debug_print("Image aspect: " <> float.to_string(image_aspect))
+
+  // Make sure we use at most 80% of the height of the terminal
+  let max_rows = int.to_float(rows) *. 0.8
+  let max_columns = int.to_float(columns) *. 0.8
+  debug_print("Max rows: " <> float.to_string(max_rows))
+  debug_print("Max columns: " <> float.to_string(max_columns))
+
+  let columns = max_rows *. image_aspect *. 2.0
+  debug_print("Columns: " <> float.to_string(columns))
+
+  let rows = max_columns /. image_aspect
+  debug_print("Rows: " <> float.to_string(rows))
+
+  case columns >. max_columns {
+    False -> #(max_rows |> float.round(), columns |> float.round())
+    True -> #(rows /. 2.0 |> float.round, max_columns |> float.round())
+  }
+}
+
+// PERF: This is a horrible workaround waiting for me to fix the way the cache works
+pub fn resize_image(
+  in: String,
+  image_size: png.ImageSize,
+  terminal_size: TerminalSize,
+) -> String {
+  let #(rows, cols) = calculate_new_size(image_size, terminal_size)
+  debug_print(
+    "Resizing image to " <> int.to_string(rows) <> "x" <> int.to_string(cols),
+  )
+
+  string.replace(
+    in,
+    "a=T,f=100",
+    "a=T,f=100,X=32,r="
+      <> rows |> int.to_string()
+      <> ",c="
+      <> cols |> int.to_string(),
+  )
 }

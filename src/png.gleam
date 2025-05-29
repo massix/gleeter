@@ -1,14 +1,14 @@
 import gleam/bit_array
 import gleam/result
 
-pub type ImageSize(x) {
-  ImageSize(width: x, height: x)
+pub type ImageSize {
+  ImageSize(width: Int, height: Int)
 }
 
 pub const png_signature = <<137, 80, 78, 71, 13, 10, 26, 10>>
 
 // Given a binary string for a PNG image, retrieve the width and height in pixels
-pub fn get_image_size(image data: BitArray) -> Result(ImageSize(Int), Nil) {
+pub fn get_image_size(image data: BitArray) -> Result(ImageSize, Nil) {
   let rt = fn(x, y) { result.try(x, y) }
   // INFO:
   // - we are skipping the signature (8 bytes)
