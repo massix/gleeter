@@ -15,6 +15,7 @@ import messua/err
 import messua/handle
 import messua/ok
 import messua/rr
+import png
 import xkcd/api
 
 type StatefulRequest =
@@ -108,7 +109,17 @@ fn handle_id(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
   result
 }
 
-fn to_printable(in: cache.ComicWithData) -> bytes_tree.BytesTree {
+fn to_printable(
+  in: cache.ComicWithData,
+  terminal_size: option.Option(graphics.TerminalSize),
+) -> bytes_tree.BytesTree {
+  let data = case terminal_size, png.get_image_size(in.raw_data) {
+    option.Some(ts), Ok(is) -> {
+      graphics.resize_image(in.data, is, ts)
+    }
+    _, _ -> in.data
+  }
+
   bytes_tree.new()
   |> bytes_tree.append_string("[" <> int.to_string(in.comic.number) <> "] ")
   |> bytes_tree.append_string(in.comic.title)
@@ -119,7 +130,7 @@ fn to_printable(in: cache.ComicWithData) -> bytes_tree.BytesTree {
     "https://xkcd.com/" <> int.to_string(in.comic.number),
   )
   |> bytes_tree.append_string("\n")
-  |> bytes_tree.append_string(in.data)
+  |> bytes_tree.append_string(data)
   |> bytes_tree.append_string("\n")
   |> bytes_tree.append_string(in.comic.alternative_text)
   |> bytes_tree.append_string("\n")
@@ -149,6 +160,24 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
       base_path
       |> strip_base_path(handle.path_segments(s))
 
+    use terminal_columns <- handle.require_valid_optional_header(
+      s,
+      "X-TERMINAL-COLUMNS",
+      int.parse,
+    )
+
+    use terminal_rows <- handle.require_valid_optional_header(
+      s,
+      "X-TERMINAL-ROWS",
+      int.parse,
+    )
+
+    let terminal_size = case terminal_columns, terminal_rows {
+      option.Some(columns), option.Some(rows) ->
+        option.Some(graphics.TerminalSize(columns, rows))
+      _, _ -> option.None
+    }
+
     let result = case path_segments {
       Ok(l) ->
         case l {
@@ -168,7 +197,7 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
       Ok(cd) -> {
         ok.ok()
         |> ok.with_header("Content-Type", "text/plain")
-        |> ok.with_binary_body(cd |> to_printable)
+        |> ok.with_binary_body(cd |> to_printable(terminal_size))
         |> Ok
       }
       Error(_) -> {
