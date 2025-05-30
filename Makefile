@@ -1,4 +1,5 @@
 GLEAM := $(shell command -v gleam)
+DOCKER_HUB_REPOSITORY ?= massix/gleeter
 
 .PHONY: test
 
@@ -23,6 +24,12 @@ check-format:
 .PHONY: package
 package: build
 	$(GLEAM) export erlang-shipment
+
+.PHONY: docker
+docker:
+	nix build .#version-file
+	docker build -t $(DOCKER_HUB_REPOSITORY):`cat result` .
+	docker tag $(DOCKER_HUB_REPOSITORY):`cat result` $(DOCKER_HUB_REPOSITORY):latest
 
 .PHONY: precalc-packages
 precalc-packages:

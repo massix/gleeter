@@ -15,6 +15,11 @@ on:
         type: boolean
         default: false
         required: true
+      build_docker:
+        description: Build docker image
+        type: boolean
+        default: false
+        required: true
       check_format:
         description: Check formatting
         type: boolean
@@ -54,3 +59,12 @@ jobs:
       - uses: nicknovitski/nix-develop@v1
       - run: make check-format
     if: ${{ inputs.check_format || true }}
+  build-docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v30
+      - uses: nicknovitski/nix-develop@v1
+      - run: make docker
+      - run: docker run --rm massix/gleeter:latest
+    if: ${{ inputs.build_docker || true }}
