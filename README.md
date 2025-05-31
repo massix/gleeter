@@ -99,12 +99,12 @@ If you have [Nix flakes](https://nixos.wiki/wiki/flakes) enabled, you can run Gl
 
 ### Docker
 
-Gleeter is also available as a Docker image on [Docker Hub](https://hub.docker.com/r/massix/gleeter). This is a convenient way to run Gleeter without needing to install Gleam or Erlang.
+Gleeter is also available as a Docker image on [Docker Hub](https://hub.docker.com/r/massix86/gleeter). This is a convenient way to run Gleeter without needing to install Gleam or Erlang.
 
 To run Gleeter with Docker, use the following command:
 
 ```bash
-docker run --rm massix/gleeter:<version or latest> -- <command>
+docker run --rm massix86/gleeter:<version or latest> -- <command>
 ```
 
 Replace `<version or latest>` with the desired version of Gleeter, or use `latest` to get the most recent version. Replace `<command>` with the Gleeter command you want to run (e.g., `latest`, `random`, `id 42`). The `--rm` flag automatically removes the container when it exits.
@@ -112,7 +112,7 @@ Replace `<version or latest>` with the desired version of Gleeter, or use `lates
 For example, to fetch a random comic using the latest version of Gleeter, you would run:
 
 ```bash
-docker run --rm massix/gleeter:latest -- random
+docker run --rm massix86/gleeter:latest -- random
 ```
 
 ### Other systems
