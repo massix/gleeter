@@ -68,7 +68,7 @@ You can customize the base path for these endpoints by using the `<base_path>` a
 *   `/comics/random`
 *   `/comics/id/<number>`
 
-Gleeter also supports receiving the terminal size via HTTP headers. You can send the `X-TERMINAL-COLUMNS` and `X-TERMINAL-ROWS` headers with your request to specify the terminal size. This allows Gleeter to properly format the comic for your terminal. If these headers are not provided, Gleeter will use a default terminal size.
+Gleeter also supports receiving the terminal size via HTTP headers. You can send the `X-TERMINAL-COLUMNS` and `X-TERMINAL-ROWS` headers with your request to specify the terminal size. This allows Gleeter to properly format the comic for your terminal. If these headers are not provided, Gleeter will use a default terminal size. Please be aware that for the resizing to work, you need to send **both** headers.
 
 
 ## How to install
