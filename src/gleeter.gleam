@@ -5,6 +5,7 @@ import cache
 import debug.{debug_print}
 import gleam/int
 import gleam/io
+import gleam/list
 import gleam/option
 import gleam/result
 import kitty/graphics
@@ -102,6 +103,20 @@ fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
   Ok(Nil)
 }
 
+fn print_help() -> Result(Nil, Nil) {
+  let help_lines = [
+    "usage: gleeter [command] [options]", "", "available commands:",
+    "  serve [port] [base_path]: start gleeter in server mode",
+    "                            default port: 8080, default base_path: \"/\"",
+    "  id [id]: print comic with id", "  latest: print latest comic",
+    "  random: print random comic",
+  ]
+
+  help_lines
+  |> list.each(io.println)
+  |> Ok
+}
+
 pub fn main() -> Result(Nil, Nil) {
   let cache = cache.new(cache.get_cache_location())
   let now = birl.now()
@@ -111,6 +126,7 @@ pub fn main() -> Result(Nil, Nil) {
     application_behavior.RandomComic -> print_comic(cache, Random)
     application_behavior.WithIDComic(id) -> print_comic(cache, ID(id))
     application_behavior.Serve(p, b) -> serve.serve(p, b, cache) |> Ok
+    application_behavior.Help -> print_help()
   }
   let end = birl.now()
 

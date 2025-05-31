@@ -7,6 +7,7 @@ pub type ApplicationBehavior {
   LatestComic
   WithIDComic(id: Int)
   PrintVersion
+  Help
   Serve(port: Int, base_path: String)
 }
 
@@ -32,7 +33,7 @@ fn parse_serve(args: List(String)) -> ApplicationBehavior {
 
 pub fn parse_arguments(args: List(String)) -> ApplicationBehavior {
   case args {
-    [] -> PrintVersion
+    [] | ["help", ..] -> Help
     ["version", ..] -> PrintVersion
     ["random", ..] -> RandomComic
     ["latest", ..] -> LatestComic

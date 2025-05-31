@@ -6,7 +6,7 @@ pub fn application_behavior_tests() {
   describe("application_behavior", [
     it("default behavior", fn() {
       application_behavior.parse_arguments([])
-      |> expect.to_equal(application_behavior.PrintVersion)
+      |> expect.to_equal(application_behavior.Help)
     }),
     it("if id is invalid, fails silently", fn() {
       application_behavior.parse_arguments(["id", "not a number"])
