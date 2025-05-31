@@ -1,6 +1,7 @@
 # Gleeter
 
 ![CI Status](https://github.com/massix/gleeter/workflows/test/badge.svg)
+![Docker Status](https://github.com/massix/gleeter/workflows/docker/badge.svg)
 
 Very simple and straightforward software to fetch comics from [xkcd](https://xkcd.com) and display them in the terminal.
 
