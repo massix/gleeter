@@ -1,5 +1,5 @@
 GLEAM := $(shell command -v gleam)
-DOCKER_HUB_REPOSITORY ?= massix/gleeter
+DOCKER_HUB_REPOSITORY ?= massix86/gleeter
 
 .PHONY: test
 
