@@ -16,6 +16,7 @@ import messua/handle
 import messua/ok
 import messua/rr
 import png
+import version
 import xkcd/api
 
 type StatefulRequest =
@@ -197,6 +198,7 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
       Ok(cd) -> {
         ok.ok()
         |> ok.with_header("Content-Type", "text/plain")
+        |> ok.with_header("X-Server-Version", version.gleeter_version)
         |> ok.with_binary_body(cd |> to_printable(terminal_size))
         |> Ok
       }
