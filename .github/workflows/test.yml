@@ -66,5 +66,5 @@ jobs:
       - uses: cachix/install-nix-action@v30
       - uses: nicknovitski/nix-develop@v1
       - run: make docker
-      - run: docker run --rm massix/gleeter:latest
+      - run: docker run --rm massix86/gleeter:latest
     if: ${{ inputs.build_docker || true }}
