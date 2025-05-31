@@ -15,6 +15,6 @@ jobs:
       - uses: nicknovitski/nix-develop@v1
       - run: make docker
       - run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u massix --password-stdin
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u massix86 --password-stdin
           docker push massix/gleeter:latest
           docker push "massix/gleeter:$(cat result)"
