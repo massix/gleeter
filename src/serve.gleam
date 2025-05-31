@@ -175,7 +175,7 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
 
     let terminal_size = case terminal_columns, terminal_rows {
       option.Some(columns), option.Some(rows) ->
-        option.Some(graphics.TerminalSize(columns, rows))
+        option.Some(graphics.TerminalSize(rows, columns))
       _, _ -> option.None
     }
 
