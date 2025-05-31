@@ -1,4 +1,6 @@
 {
+  description = "Fetch and display XKCD comics directly in the terminal";
+
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
 
@@ -7,8 +9,8 @@
       let
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) stdenv mkShell;
-        fixed-output-hash = "sha256-aLrV7joXAOS/nH3oGGU48gNPa0qgSbeB0iTw/GFqogo=";
-        version = "1.1.1";
+        fixed-output-hash = "sha256-DIY9OA3ZigaVC2gxvwgCrF8rjNIraSy7mVqudp62x4M=";
+        version = "1.2.0";
         pname = "gleeter";
         gleamPackages = stdenv.mkDerivation {
           inherit version;
@@ -49,68 +51,74 @@
             sqlite
           ];
         };
-        overlays = _: _: { gleeter = self.packages.${system}.default; };
-        packages.default = stdenv.mkDerivation rec {
-          inherit pname version;
+        overlays = _: _: { gleeter = self.packages.${system}.gleeter; };
+        packages = {
+          gleeter = stdenv.mkDerivation {
+            inherit pname version;
 
-          src = builtins.filterSource
-            (path: _: ! builtins.elem (baseNameOf path) [ "build" ".git" ".direnv" ".envrc" ])
-            ./.;
+            src = builtins.filterSource
+              (path: _: ! builtins.elem (baseNameOf path) [ "build" ".git" ".direnv" ".envrc" ])
+              ./.;
 
-          nativeBuildInputs = with pkgs; [
-            gleam
-            (rebar3WithPlugins {
-              plugins = with pkgs.beamPackages; [
-                ex_doc
-                pc
-                hex
-              ];
-            })
-            gleamPackages
-          ];
+            nativeBuildInputs = with pkgs; [
+              gleam
+              (rebar3WithPlugins {
+                plugins = with pkgs.beamPackages; [
+                  ex_doc
+                  pc
+                  hex
+                ];
+              })
+              gleamPackages
+            ];
 
-          buildInputs = with pkgs; [
-            erlang_27
-          ];
+            propagatedBuildInputs = with pkgs; [
+              erlang_27
+            ];
 
-          doCheck = true;
+            doCheck = true;
 
-          configurePhase = ''
-            cp --recursive ${gleamPackages}/build .
-            chmod -R 0755 build
-          '';
+            configurePhase = ''
+              cp --recursive ${gleamPackages}/build .
+              chmod -R 0755 build
+            '';
 
-          checkPhase = ''
-            HOME=$PWD make test
-          '';
+            checkPhase = ''
+              HOME=$PWD make test
+            '';
 
-          buildPhase = ''
-            runHook preBuildHook
-            HOME=$PWD gleam export erlang-shipment
-            runHook postBuildHook
-          '';
+            buildPhase = ''
+              runHook preBuildHook
+              HOME=$PWD gleam export erlang-shipment
+              runHook postBuildHook
+            '';
 
-          installPhase = ''
-            runHook preInstallHook
-            mkdir -p $out/opt/gleeter/
-            mkdir -p $out/bin/
-            cp -r build/erlang-shipment/* $out/opt/gleeter/
-            substituteInPlace $out/opt/gleeter/entrypoint.sh \
-              --replace erl ${pkgs.erlang_27}/bin/erl
-            cp scripts/gleeter $out/bin/gleeter
-            substituteInPlace $out/bin/gleeter \
-              --replace /opt/gleeter $out/opt/gleeter
-            runHook postInstallHook
-          '';
+            installPhase = ''
+              runHook preInstallHook
+              mkdir -p $out/opt/gleeter/
+              mkdir -p $out/bin/
+              cp -r build/erlang-shipment/* $out/opt/gleeter/
+              substituteInPlace $out/opt/gleeter/entrypoint.sh \
+                --replace erl ${pkgs.erlang_27}/bin/erl
+              cp scripts/gleeter $out/bin/gleeter
+              substituteInPlace $out/bin/gleeter \
+                --replace /opt/gleeter $out/opt/gleeter
+              runHook postInstallHook
+            '';
 
-          meta = with pkgs.lib; {
-            description = "Fetch and display XKCD comics directly in the terminal";
-            mainProgram = "gleeter";
-            homepage = "https://github.com/massix/gleeter";
-            license = licenses.mit;
-            maintainers = [ maintainers.massimogengarelli ];
+            meta = with pkgs.lib; {
+              description = "Fetch and display XKCD comics directly in the terminal";
+              mainProgram = "gleeter";
+              homepage = "https://github.com/massix/gleeter";
+              license = licenses.mit;
+              maintainers = [ maintainers.massimogengarelli ];
+            };
+          };
+          default = self.packages.${system}.gleeter;
+          version-file = pkgs.writeTextFile {
+            name = "${pname}-version.txt";
+            text = "${version}";
           };
         };
-        app.default = self.packages.default;
       });
 }
