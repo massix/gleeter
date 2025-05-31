@@ -119,3 +119,15 @@ docker run --rm massix/gleeter:latest -- random
 
 To install on other systems, ensure you have Gleam and Erlang installed. Then, you can build and run the project using Gleam's build tools. Refer to the Gleam documentation for specific instructions.
 
+## Contributions
+
+All contributions are welcome! Feel free to open pull requests or issues to help improve the project.
+
+## License and copyrights
+
+Gleeter is licensed under the MIT License. See [LICENSE.txt](LICENSE.txt) for details.
+
+All xkcd comics displayed by Gleeter are licensed under a Creative Commons license. The intellectual property of xkcd.com belongs to Randall Munroe. Contact details can be found on the xkcd.com website.
+
+I am in no way responsible for the content of the xkcd comics. All attributions and inquiries should be directed to Randall Munroe.
+
