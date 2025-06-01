@@ -12,6 +12,16 @@ Gleeter is known to work well with the following terminals:
 *   [iTerm2](https://iterm2.com/)
 *   ... and probably more
 
+## Test it out now
+
+If you are not interested in knowing the insights of the project or to develop it, you can start using
+it without installing anything: simply
+`curl -H "X-TERMINAL-ROWS: $(tput lines)" -H "X-TERMINAL-COLUMNS: $(tput cols)" https://xkcd.massi.rocks/comics/latest`
+
+Replace `latest` with `random` or `id/<comic_id>` to change the behavior!
+
+The service is not guaranteed.
+
 ## Screenshots
 
 ### Latest comic
