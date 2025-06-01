@@ -5,10 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   docker-build:
-    runs-on: ${{ matrix.os_version }}
-    strategy:
-      matrix:
-        os_version: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v30
