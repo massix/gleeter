@@ -1,5 +1,6 @@
 GLEAM := $(shell command -v gleam)
 DOCKER_HUB_REPOSITORY ?= massix86/gleeter
+DOCKER_PLATFORM ?= linux/amd64
 
 .PHONY: test
 
@@ -28,7 +29,7 @@ package: build
 .PHONY: docker
 docker:
 	nix build .#version-file
-	docker build -t $(DOCKER_HUB_REPOSITORY):`cat result` .
+	docker build --platform $(DOCKER_PLATFORM) -t $(DOCKER_HUB_REPOSITORY):`cat result` .
 	docker tag $(DOCKER_HUB_REPOSITORY):`cat result` $(DOCKER_HUB_REPOSITORY):latest
 
 .PHONY: precalc-packages

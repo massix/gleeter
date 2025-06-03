@@ -13,9 +13,7 @@ COPY ./gleam.toml /app/gleam.toml
 COPY ./manifest.toml /app/manifest.toml
 COPY ./src /app/src
 
-RUN gleam build && \
-  gleam export erlang-shipment
-
+RUN gleam export erlang-shipment
 
 FROM alpine:3
 
