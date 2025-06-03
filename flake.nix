@@ -8,39 +8,12 @@
     flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" "aarch64-linux" ] (system:
       let
         pkgs = import nixpkgs { inherit system; };
-        inherit (pkgs) stdenv mkShell;
-        fixed-output-hash = "sha256-DIY9OA3ZigaVC2gxvwgCrF8rjNIraSy7mVqudp62x4M=";
+        inherit (pkgs) mkShell;
+        gleamPackagesHash = "sha256-DIY9OA3ZigaVC2gxvwgCrF8rjNIraSy7mVqudp62x4M=";
         version = "1.2.0";
         pname = "gleeter";
-        gleamPackages = stdenv.mkDerivation {
-          inherit version;
-          pname = "${pname}-gleam-packages";
-
-          nativeBuildInputs = with pkgs; [ gleam ];
-          src = builtins.filterSource
-            (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) ./.;
-
-          buildPhase = ''
-            export HOME=$PWD
-            gleam deps download
-            grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
-            echo -e "[packages]\n" > build/packages/packages.toml
-            cat packages.toml >> build/packages/packages.toml
-            rm packages.toml
-          '';
-
-          installPhase = ''
-            runHook preInstallHook
-            mkdir -p $out
-            cp --recursive build $out/
-            runHook postInstallHook
-          '';
-
-          outputHashAlgo = "sha256";
-          outputHashMode = "recursive";
-          outputHash = fixed-output-hash;
-        };
-
+        src = ./.;
+        gleam-helper = pkgs.callPackage ./nix/gleam-helper.nix { };
       in
       {
         devShells.default = mkShell {
@@ -53,35 +26,11 @@
         };
         overlays = _: _: { gleeter = self.packages.${system}.gleeter; };
         packages = {
-          gleeter = stdenv.mkDerivation {
-            inherit pname version;
-
-            src = builtins.filterSource
-              (path: _: ! builtins.elem (baseNameOf path) [ "build" ".git" ".direnv" ".envrc" ])
-              ./.;
-
-            nativeBuildInputs = with pkgs; [
-              gleam
-              (rebar3WithPlugins {
-                plugins = with pkgs.beamPackages; [
-                  ex_doc
-                  pc
-                  hex
-                ];
-              })
-              gleamPackages
-            ];
-
-            propagatedBuildInputs = with pkgs; [
-              erlang_27
-            ];
+          gleeter = gleam-helper.buildGleamPackage {
+            inherit pname version src gleamPackagesHash;
+            rebar3Plugins = with pkgs.beamPackages; [ ex_doc pc hex ];
 
             doCheck = true;
-
-            configurePhase = ''
-              cp --recursive ${gleamPackages}/build .
-              chmod -R 0755 build
-            '';
 
             checkPhase = ''
               HOME=$PWD make test
@@ -89,7 +38,7 @@
 
             buildPhase = ''
               runHook preBuildHook
-              HOME=$PWD gleam export erlang-shipment
+              HOME=$PWD make package
               runHook postBuildHook
             '';
 
