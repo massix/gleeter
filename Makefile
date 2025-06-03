@@ -48,7 +48,7 @@ precalc-packages:
 
 .PHONY: fix-flake
 fix-flake: precalc-packages
-	current_hash="$(shell cat flake.nix | grep fixed-output-hash | head -1 | cut -d= -f2- | tr -d '"; ')"; \
+	current_hash="$(shell cat flake.nix | grep gleamPackagesHash | head -1 | cut -d= -f2- | tr -d '"; ')"; \
 	new_hash="$(shell cat out.hash)"; \
 	if [[ "$$current_hash" != "$$new_hash" ]]; then \
     sed -i "s|$$current_hash|$$new_hash|" flake.nix; \
