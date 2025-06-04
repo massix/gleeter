@@ -1,0 +1,23 @@
+random_start = "this is a string"
+
+[screen]
+max_cols = 31
+# Missing field max_lines
+
+[[alias]]
+name = 123
+type = "id"
+
+[[alias]]
+name = "random"
+type = 4
+
+[[alias]]
+name = "invalid_alias"
+type = "id"
+# missing id
+
+[[alias]]
+name = "valid"
+type = "id"
+id = 123

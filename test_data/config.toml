@@ -1,0 +1,18 @@
+random_start = 38
+
+[screen]
+max_cols = 80
+max_lines = 23
+
+[[alias]]
+name = "bobbytables"
+type = "id"
+id = 987
+
+[[alias]]
+name = "rnd"
+type = "random"
+
+[[alias]]
+name = "l"
+type = "latest"
