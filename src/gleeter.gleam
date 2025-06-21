@@ -125,8 +125,10 @@ fn print_help() -> Result(Nil, Nil) {
 pub fn main() -> Result(Nil, Nil) {
   let cache = cache.new(cache.get_cache_location())
   let now = birl.now()
+  let configuration_path = config.get_configuration_file()
+  debug_print("Configuration path: " <> configuration_path)
 
-  let configuration = config.parse(config.get_configuration_file())
+  let configuration = config.parse(configuration_path)
 
   let r = case application_behavior.get_application_behavior(configuration) {
     application_behavior.PrintVersion -> print_version()

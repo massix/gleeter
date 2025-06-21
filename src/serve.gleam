@@ -6,6 +6,7 @@ import gleam/bytes_tree
 import gleam/erlang/process
 import gleam/int
 import gleam/io
+import gleam/list
 import gleam/option
 import gleam/result
 import gleam/uri
@@ -20,8 +21,12 @@ import png
 import version
 import xkcd/api
 
+type ApplicationContext {
+  ApplicationContext(cache: cache.Cache, cfg: config.Configuration)
+}
+
 type StatefulRequest =
-  rr.MRequest(cache.Cache)
+  rr.MRequest(ApplicationContext)
 
 fn wrap_nil0(f: fn() -> Result(x, y)) -> Result(x, Nil) {
   f() |> result.map_error(fn(_) { Nil })
@@ -157,7 +162,7 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
   let base_path = uri.path_segments(base_path)
 
   fn(s: StatefulRequest) -> rr.MResponse {
-    let cache = rr.state(s)
+    let ApplicationContext(cache, config) = rr.state(s)
     let path_segments =
       base_path
       |> strip_base_path(handle.path_segments(s))
@@ -190,6 +195,20 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
               Error(_) -> Error(Nil)
             }
           }
+          [alias] -> {
+            let first_alias =
+              list.filter(config.aliases, fn(x) { x.name == alias })
+              |> list.first
+            case first_alias {
+              Ok(alias) ->
+                case alias {
+                  config.RandomAlias(_) -> handle_random(cache)
+                  config.LatestAlias(_) -> handle_latest()
+                  config.IdAlias(_, id) -> handle_id(cache, id)
+                }
+              Error(_) -> handle_latest()
+            }
+          }
           ["latest"] | [] | _ -> handle_latest()
         }
       _ -> Error(Nil)
@@ -215,14 +234,14 @@ pub fn serve(
   port: Int,
   base_path: String,
   cache: cache.Cache,
-  _config: config.Configuration,
+  config: config.Configuration,
 ) -> Nil {
   io.println("Serving on port " <> int.to_string(port))
 
   messua.default()
   |> messua.with_http(port)
   |> messua.with_binding("0.0.0.0")
-  |> messua.with_state(cache)
+  |> messua.with_state(ApplicationContext(cache, config))
   |> messua.start(handler(base_path))
 
   process.sleep_forever()
