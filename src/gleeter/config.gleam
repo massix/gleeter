@@ -1,6 +1,8 @@
+import envoy
 import gleam/dict
 import gleam/list
 import gleam/option
+import gleam/result
 import simplifile
 import tom
 
@@ -18,6 +20,9 @@ pub type Alias {
   LatestAlias(name: String)
   RandomAlias(name: String)
 }
+
+pub type ConfigFile =
+  String
 
 fn default() -> Configuration {
   Configuration(
@@ -77,7 +82,16 @@ fn parse_alias(in: dict.Dict(String, tom.Toml)) -> option.Option(Alias) {
   }
 }
 
-pub fn parse(in: String) -> Configuration {
+pub fn get_configuration_file() -> ConfigFile {
+  let assert Ok(path) =
+    envoy.get("XDG_CONFIG_HOME")
+    |> result.or(envoy.get("HOME") |> result.map(fn(s) { s <> "/.config" }))
+    |> result.or(Ok("."))
+
+  path <> "/gleeter/config.toml"
+}
+
+pub fn parse(in: ConfigFile) -> Configuration {
   use file_content <- or_default(simplifile.read(in))
   use parsed <- or_default(tom.parse(file_content))
 
@@ -94,7 +108,11 @@ pub fn parse(in: String) -> Configuration {
       }
     })
     |> list.filter(option.is_some)
-    |> list.map(option.unwrap(_, LatestAlias("nonexisting")))
+    |> list.map(fn(s) {
+      // We are pretty sure this cannot fail
+      let assert option.Some(alias) = s
+      alias
+    })
 
   Configuration(random_start, max_cols, max_lines, aliases)
 }
