@@ -8,6 +8,7 @@ import gleam/io
 import gleam/list
 import gleam/option
 import gleam/result
+import gleeter/config
 import kitty/graphics
 import png
 import serve
@@ -70,7 +71,11 @@ fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
   }
 }
 
-fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
+fn print_comic(
+  cache: cache.Cache,
+  _config: config.Configuration,
+  in: PrintComic,
+) -> Result(Nil, Nil) {
   use cached_comic <- result.try(case in {
     Latest -> get_comic(cache, 0)
     Random -> {
@@ -120,12 +125,19 @@ fn print_help() -> Result(Nil, Nil) {
 pub fn main() -> Result(Nil, Nil) {
   let cache = cache.new(cache.get_cache_location())
   let now = birl.now()
-  let r = case application_behavior.get_application_behavior() {
+
+  let configuration = config.parse(config.get_configuration_file())
+
+  let r = case application_behavior.get_application_behavior(configuration) {
     application_behavior.PrintVersion -> print_version()
-    application_behavior.LatestComic -> print_comic(cache, Latest)
-    application_behavior.RandomComic -> print_comic(cache, Random)
-    application_behavior.WithIDComic(id) -> print_comic(cache, ID(id))
-    application_behavior.Serve(p, b) -> serve.serve(p, b, cache) |> Ok
+    application_behavior.LatestComic ->
+      print_comic(cache, configuration, Latest)
+    application_behavior.RandomComic ->
+      print_comic(cache, configuration, Random)
+    application_behavior.WithIDComic(id) ->
+      print_comic(cache, configuration, ID(id))
+    application_behavior.Serve(p, b) ->
+      serve.serve(p, b, cache, configuration) |> Ok
     application_behavior.Help -> print_help()
   }
   let end = birl.now()

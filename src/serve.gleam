@@ -9,6 +9,7 @@ import gleam/io
 import gleam/option
 import gleam/result
 import gleam/uri
+import gleeter/config
 import kitty/graphics
 import messua
 import messua/err
@@ -210,7 +211,12 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
   }
 }
 
-pub fn serve(port: Int, base_path: String, cache: cache.Cache) -> Nil {
+pub fn serve(
+  port: Int,
+  base_path: String,
+  cache: cache.Cache,
+  _config: config.Configuration,
+) -> Nil {
   io.println("Serving on port " <> int.to_string(port))
 
   messua.default()
