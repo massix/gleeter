@@ -60,6 +60,54 @@ Gleeter understands the following commands:
 *   `id <number>`: Fetches the comic with the specified ID and displays it in the terminal. Replace `<number>` with the desired comic ID.
 *   `serve <port> <base_path>`: Starts a web server to serve the comics. `<port>` is optional and defaults to 8080. `<base_path>` is also optional and defaults to "". For example, `gleeter serve 3000 /comics` will start the server on port 3000 and serve the comics under the `/comics` path.
 
+## Configuration File
+
+Gleeter uses a TOML configuration file to customize its behavior. The configuration file allows you to configure the starting comic for random mode, set screen dimensions, and define aliases for comic IDs.
+
+### Syntax
+
+Here's an example configuration file (based on `test_data/config.toml`):
+
+```toml
+random_start = 38
+
+[screen]
+max_cols = 80
+max_lines = 23
+
+[[alias]]
+name = "bobbytables"
+type = "id"
+id = 987
+
+[[alias]]
+name = "rnd"
+type = "random"
+
+[[alias]]
+name = "l"
+type = "latest"
+```
+
+### Structure and Usage
+
+The configuration file is loaded when Gleeter starts. Gleeter looks for the configuration file in `$XDG_CONFIG_HOME/gleeter/config.toml` or `$HOME/.config/gleeter/config.toml`. If neither of these is found, it uses `./config.toml`.  The settings defined in the file are used to initialize the application and control its behavior.
+
+*   **`random_start`**: Specifies the starting comic number for the random comic selection. If not specified, a default value is used.
+
+*   **`[screen]`**: This section configures the screen dimensions for displaying comics.
+    *   `max_cols`: Specifies the maximum number of columns to use for displaying the comic.
+    *   `max_lines`: Specifies the maximum number of lines to use for displaying the comic.
+
+*   **`[[alias]]`**: This section defines aliases for accessing comics. You can define multiple aliases.
+    *   `name`: The name of the alias.
+    *   `type`: The type of alias. Valid values are `"id"`, `"random"`, and `"latest"`.
+    *   `id`: (Only required for `"id"` aliases) The comic ID to associate with the alias.
+
+The `src/gleeter/config.gleam` file defines the structure of the configuration data and how it is parsed from the TOML file.
+
+To modify Gleeter's behavior, simply edit the configuration file and restart the application.
+
 ### Serve mode details
 
 When Gleeter is run in `serve` mode, it starts an HTTP server that exposes the following endpoints:
@@ -78,6 +126,26 @@ You can customize the base path for these endpoints by using the `<base_path>` a
 
 Gleeter also supports receiving the terminal size via HTTP headers. You can send the `X-TERMINAL-COLUMNS` and `X-TERMINAL-ROWS` headers with your request to specify the terminal size. This allows Gleeter to properly format the comic for your terminal. If these headers are not provided, Gleeter will use a default terminal size. Please be aware that for the resizing to work, you need to send **both** headers.
 
+On top of that, Serve mode will also honour all the aliases defined in the [configuration file](#configuration-file), and expose them all at the root of the `base_path`. As a quick example, imagine you have the following defined in the `config.toml` file:
+```toml
+[[alias]]
+name = "bobbytables"
+type = "id"
+id = 987
+
+[[alias]]
+name = "rnd"
+type = "random"
+
+[[alias]]
+name = "l"
+type = "latest"
+```
+
+And you start the server with `gleeter serve 8080 /comics`, on top of the URLs mentioned above, you will also get the following:
+*   `/comics/bobbytables`, which will be an alias for `/comics/id/987`
+*   `/comics/rnd`, which will be an alias for `/comics/random`
+*   `/comics/l`, which will be an alias for `/comics/latest`
 
 ## How to install
 
