@@ -8,6 +8,7 @@ import gleam/io
 import gleam/list
 import gleam/option
 import gleam/result
+import gleeter/config
 import kitty/graphics
 import png
 import serve
@@ -70,14 +71,21 @@ fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
   }
 }
 
-fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
+fn print_comic(
+  cache: cache.Cache,
+  config: config.Configuration,
+  in: PrintComic,
+) -> Result(Nil, Nil) {
   use cached_comic <- result.try(case in {
     Latest -> get_comic(cache, 0)
     Random -> {
-      use api.Xkcd(number:, ..) <- result.try(
+      use api.Xkcd(number: highest, ..) <- result.try(
         api.get_latest() |> result.map_error(print_api_error),
       )
-      let random_comic = int.random(number)
+      let random_comic = case config.random_start {
+        option.Some(start) -> int.random(highest - start) + start
+        option.None -> int.random(highest)
+      }
       get_comic(cache, random_comic)
     }
     ID(id) -> get_comic(cache, id)
@@ -86,6 +94,26 @@ fn print_comic(cache: cache.Cache, in: PrintComic) -> Result(Nil, Nil) {
   let cache.ComicWithData(xkcd, body, raw_data) = cached_comic
   use image_size <- result.try(png.get_image_size(raw_data))
   let terminal_size = graphics.get_terminal_size()
+
+  // Set new max_cols and max_lines if they were specified in the configuration
+  let terminal_size = case config.max_lines, config.max_cols {
+    option.Some(max_rows), option.Some(max_cols) ->
+      graphics.TerminalSize(
+        int.min(max_rows, terminal_size.rows),
+        int.min(max_cols, terminal_size.columns),
+      )
+    option.Some(max_rows), option.None ->
+      graphics.TerminalSize(
+        int.min(max_rows, terminal_size.rows),
+        terminal_size.columns,
+      )
+    option.None, option.Some(max_cols) ->
+      graphics.TerminalSize(
+        terminal_size.rows,
+        int.min(max_cols, terminal_size.columns),
+      )
+    option.None, option.None -> terminal_size
+  }
 
   let api.Xkcd(publication_date:, title:, alternative_text:, number:, link:, ..) =
     xkcd
@@ -120,12 +148,21 @@ fn print_help() -> Result(Nil, Nil) {
 pub fn main() -> Result(Nil, Nil) {
   let cache = cache.new(cache.get_cache_location())
   let now = birl.now()
-  let r = case application_behavior.get_application_behavior() {
+  let configuration_path = config.get_configuration_file()
+  debug_print("Configuration path: " <> configuration_path)
+
+  let configuration = config.parse(configuration_path)
+
+  let r = case application_behavior.get_application_behavior(configuration) {
     application_behavior.PrintVersion -> print_version()
-    application_behavior.LatestComic -> print_comic(cache, Latest)
-    application_behavior.RandomComic -> print_comic(cache, Random)
-    application_behavior.WithIDComic(id) -> print_comic(cache, ID(id))
-    application_behavior.Serve(p, b) -> serve.serve(p, b, cache) |> Ok
+    application_behavior.LatestComic ->
+      print_comic(cache, configuration, Latest)
+    application_behavior.RandomComic ->
+      print_comic(cache, configuration, Random)
+    application_behavior.WithIDComic(id) ->
+      print_comic(cache, configuration, ID(id))
+    application_behavior.Serve(p, b) ->
+      serve.serve(p, b, cache, configuration) |> Ok
     application_behavior.Help -> print_help()
   }
   let end = birl.now()

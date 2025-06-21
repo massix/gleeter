@@ -2,8 +2,6 @@ GLEAM := $(shell command -v gleam)
 DOCKER_HUB_REPOSITORY ?= massix86/gleeter
 DOCKER_PLATFORM ?= linux/amd64
 
-.PHONY: test
-
 all: build
 
 .PHONY: deps
@@ -25,6 +23,10 @@ check-format:
 .PHONY: package
 package: build
 	$(GLEAM) export erlang-shipment
+
+.PHONY: serve
+serve: build
+	GLEETER_DEBUG=1 $(GLEAM) run -- serve 8080 comics
 
 .PHONY: docker
 docker:
