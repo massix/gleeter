@@ -131,7 +131,7 @@ fn print_comic(
   Ok(Nil)
 }
 
-fn print_help() -> Result(Nil, Nil) {
+fn print_help(aliases: List(config.Alias)) -> Result(Nil, Nil) {
   let help_lines = [
     "usage: gleeter [command] [options]", "", "available commands:",
     "  serve [port] [base_path]: start gleeter in server mode",
@@ -140,7 +140,18 @@ fn print_help() -> Result(Nil, Nil) {
     "  random: print random comic",
   ]
 
+  let aliases =
+    list.map(aliases, fn(alias) {
+      case alias {
+        config.RandomAlias(_) -> "  " <> alias.name <> ": print random comic"
+        config.LatestAlias(_) -> "  " <> alias.name <> ": print latest comic"
+        config.IdAlias(_, id) ->
+          "  " <> alias.name <> ": print comic with id " <> int.to_string(id)
+      }
+    })
+
   help_lines
+  |> list.append(aliases)
   |> list.each(io.println)
   |> Ok
 }
@@ -163,7 +174,7 @@ pub fn main() -> Result(Nil, Nil) {
       print_comic(cache, configuration, ID(id))
     application_behavior.Serve(p, b) ->
       serve.serve(p, b, cache, configuration) |> Ok
-    application_behavior.Help -> print_help()
+    application_behavior.Help -> print_help(configuration.aliases)
   }
   let end = birl.now()
 
