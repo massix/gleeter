@@ -31,8 +31,18 @@ serve: build
 .PHONY: docker
 docker:
 	nix build .#version-file
-	docker build --platform $(DOCKER_PLATFORM) -t $(DOCKER_HUB_REPOSITORY):`cat result` .
-	docker tag $(DOCKER_HUB_REPOSITORY):`cat result` $(DOCKER_HUB_REPOSITORY):latest
+	docker build --platform $(DOCKER_PLATFORM) -t $(DOCKER_HUB_REPOSITORY):$$(< result) .
+	docker tag $(DOCKER_HUB_REPOSITORY):$$(< result) $(DOCKER_HUB_REPOSITORY):latest
+
+.PHONY: docker-do
+docker-do:
+	nix build .#version-file
+	docker build \
+		--platform $(DOCKER_PLATFORM) \
+		--file docker-digitalocean/Dockerfile \
+		--build-arg baseVersion=$$(< result) \
+		--tag $(DOCKER_HUB_REPOSITORY):do-$$(< result) docker-digitalocean/
+	docker tag $(DOCKER_HUB_REPOSITORY):do-$$(< result) $(DOCKER_HUB_REPOSITORY):do-latest
 
 .PHONY: precalc-packages
 precalc-packages:

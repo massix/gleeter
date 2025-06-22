@@ -1,0 +1,48 @@
+[[alias]]
+name = "wikipedia"
+type = "id"
+id = 285
+
+[[alias]]
+name = "programmers"
+type = "id"
+id = 378
+
+[[alias]]
+name = "compiling"
+type = "id"
+id = 303
+
+[[alias]]
+name = "sudo"
+type = "id"
+id = 149
+
+[[alias]]
+name = "standards"
+type = "id"
+id = 927
+
+[[alias]]
+name = "techsupport"
+type = "id"
+id = 627
+
+[[alias]]
+name = "bobbytables"
+type = "id"
+id = 327
+
+[[alias]]
+name = "tenthousand"
+type = "id"
+id = 1053
+
+[[alias]]
+name = "correlation"
+type = "id"
+id = 552
+
+[[alias]]
+name = "r"
+type = "random"
