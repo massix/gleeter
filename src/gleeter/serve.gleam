@@ -4,9 +4,12 @@ import gleam/bytes_tree
 import gleam/erlang/process
 import gleam/int
 import gleam/io
+import gleam/json
 import gleam/list
 import gleam/option
+import gleam/otp/actor
 import gleam/result
+import gleam/string_tree
 import gleam/uri
 import gleeter/cache
 import gleeter/config
@@ -22,7 +25,81 @@ import messua/ok
 import messua/rr
 
 type ApplicationContext {
-  ApplicationContext(cache: cache.Cache, cfg: config.Configuration)
+  ApplicationContext(
+    cache: cache.Cache,
+    cfg: config.Configuration,
+    actor: process.Subject(ActorMessage),
+  )
+}
+
+type HealthCheck {
+  HealthCheck(
+    cache_status: Bool,
+    cache_elements: Int,
+    processed_queries: Int,
+    current_version: String,
+    loaded_aliases: List(String),
+  )
+}
+
+type ApiError {
+  ApiError(message: String)
+}
+
+fn encode_api_error(api_error: ApiError) -> json.Json {
+  let ApiError(message:) = api_error
+  json.object([#("message", json.string(message))])
+}
+
+fn encode_health_check(health_check: HealthCheck) -> json.Json {
+  let HealthCheck(
+    cache_status:,
+    cache_elements:,
+    processed_queries:,
+    current_version:,
+    loaded_aliases:,
+  ) = health_check
+  json.object([
+    #("cache_status", json.bool(cache_status)),
+    #("cache_elements", json.int(cache_elements)),
+    #("processed_queries", json.int(processed_queries)),
+    #("current_version", json.string(current_version)),
+    #("loaded_aliases", json.array(loaded_aliases, json.string)),
+  ])
+}
+
+fn build_health_check(ctx: ApplicationContext) -> HealthCheck {
+  let cache_status = cache.is_cache_loaded(ctx.cache)
+  let cache_elements = cache.count_elements(ctx.cache) |> option.unwrap(0)
+  let processed_queries = process.call(ctx.actor, Get, 50)
+  let current_version = version.user_agent
+  let loaded_aliases = list.map(ctx.cfg.aliases, fn(x) { x.name })
+
+  HealthCheck(
+    cache_status:,
+    cache_elements:,
+    processed_queries:,
+    current_version:,
+    loaded_aliases:,
+  )
+}
+
+type ActorMessage {
+  Get(process.Subject(Int))
+  Inc
+}
+
+fn process_request(
+  message: ActorMessage,
+  state: Int,
+) -> actor.Next(ActorMessage, Int) {
+  case message {
+    Inc -> actor.continue(state + 1)
+    Get(s) -> {
+      actor.send(s, state)
+      actor.continue(state)
+    }
+  }
 }
 
 type StatefulRequest =
@@ -157,12 +234,17 @@ fn strip_base_path(
   }
 }
 
+type PathResult {
+  Json(json.Json, Int)
+  Comic(cache.ComicWithData)
+}
+
 fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
   io.println("Serving at base path: " <> base_path)
   let base_path = uri.path_segments(base_path)
 
   fn(s: StatefulRequest) -> rr.MResponse {
-    let ApplicationContext(cache, config) = rr.state(s)
+    let ApplicationContext(cache, config, actor) as context = rr.state(s)
     let path_segments =
       base_path
       |> strip_base_path(handle.path_segments(s))
@@ -185,15 +267,39 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
       _, _ -> option.None
     }
 
+    let comic_or_error = fn(
+      in: Result(cache.ComicWithData, Nil),
+      message: String,
+    ) {
+      result.map(in, Comic)
+      |> result.unwrap(ApiError(message) |> encode_api_error() |> Json(500))
+    }
+
     let result = case path_segments {
       Ok(l) ->
         case l {
-          ["random"] -> handle_random(cache)
+          ["health"] -> {
+            build_health_check(context)
+            |> encode_health_check
+            |> Json(200)
+          }
+          ["random"] -> {
+            handle_random(cache)
+            |> comic_or_error("Failed to load random comic")
+          }
           ["id", id] -> {
             case int.parse(id) {
-              Ok(num) -> handle_id(cache, num)
-              Error(_) -> Error(Nil)
+              Ok(num) -> {
+                handle_id(cache, num)
+                |> comic_or_error("Failed to load comic")
+              }
+              Error(_) ->
+                ApiError("Invalid id provided") |> encode_api_error |> Json(400)
             }
+          }
+          ["latest"] | [] -> {
+            handle_latest()
+            |> comic_or_error("Failed to load latest comic")
           }
           [alias] -> {
             let first_alias =
@@ -202,29 +308,50 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
             case first_alias {
               Ok(alias) ->
                 case alias {
-                  config.RandomAlias(_) -> handle_random(cache)
-                  config.LatestAlias(_) -> handle_latest()
-                  config.IdAlias(_, id) -> handle_id(cache, id)
+                  config.RandomAlias(_) -> {
+                    handle_random(cache)
+                    |> comic_or_error("Failed to load random comic")
+                  }
+                  config.LatestAlias(_) -> {
+                    handle_latest()
+                    |> comic_or_error("Failed to load latest comic")
+                  }
+                  config.IdAlias(_, id) -> {
+                    handle_id(cache, id)
+                    |> comic_or_error("Failed to load comic")
+                  }
                 }
-              Error(_) -> handle_latest()
+              Error(_) -> {
+                ApiError("Not found") |> encode_api_error |> Json(404)
+              }
             }
           }
-          ["latest"] | [] | _ -> handle_latest()
+          _ -> {
+            ApiError("Not found")
+            |> encode_api_error
+            |> Json(404)
+          }
         }
-      _ -> Error(Nil)
+      _ -> ApiError("Not found") |> encode_api_error |> Json(404)
     }
 
     case result {
-      Ok(cd) -> {
+      Json(data, code) -> {
+        err.new(code)
+        |> err.with_header("Content-Type", "application/json")
+        |> err.with_header("X-Server-Version", version.gleeter_version)
+        |> err.with_message([json.to_string_tree(data) |> string_tree.to_string])
+        |> err.to_response(fn(_) { Nil })
+        |> Ok
+      }
+      Comic(cd) -> {
+        process.send(actor, Inc)
+
         ok.ok()
         |> ok.with_header("Content-Type", "text/plain")
         |> ok.with_header("X-Server-Version", version.gleeter_version)
         |> ok.with_binary_body(cd |> to_printable(terminal_size))
         |> Ok
-      }
-      Error(_) -> {
-        err.new(404)
-        |> Error
       }
     }
   }
@@ -237,11 +364,12 @@ pub fn serve(
   config: config.Configuration,
 ) -> Nil {
   io.println("Serving on port " <> int.to_string(port))
+  let assert Ok(actor) = actor.start(0, process_request)
 
   messua.default()
   |> messua.with_http(port)
   |> messua.with_binding("0.0.0.0")
-  |> messua.with_state(ApplicationContext(cache, config))
+  |> messua.with_state(ApplicationContext(cache, config, actor))
   |> messua.start(handler(base_path))
 
   process.sleep_forever()
