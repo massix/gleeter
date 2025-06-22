@@ -119,10 +119,25 @@ fn cache_get_comic_tests(valid_cache: Cache) -> List(TestTree) {
   ]
 }
 
+fn cache_count_elements_tests(valid_cache: Cache) -> List(TestTree) {
+  [
+    it("can count elements", fn() {
+      cache.count_elements(valid_cache)
+      |> expect.to_be_some
+      |> expect.to_equal(2)
+    }),
+  ]
+}
+
 pub fn cache_tests() {
   let valid_cache = cache.new(":memory:")
 
   describe("cache", [
+    it("cache is loaded", fn() {
+      valid_cache
+      |> cache.is_cache_loaded
+      |> expect.to_be_true
+    }),
     describe("location", [
       it("fetches the right environment variable", fn() {
         envoy.set("XDG_CACHE_HOME", "/xdg-cache-home")
@@ -148,5 +163,6 @@ pub fn cache_tests() {
     describe("comic insert", cache_insert_comic_tests(valid_cache)),
     describe("image insert", cache_insert_image_tests(valid_cache)),
     describe("get comic", cache_get_comic_tests(valid_cache)),
+    describe("count elements", cache_count_elements_tests(valid_cache)),
   ])
 }

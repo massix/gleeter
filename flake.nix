@@ -10,7 +10,7 @@
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) mkShell;
         gleamPackagesHash = "sha256-DIY9OA3ZigaVC2gxvwgCrF8rjNIraSy7mVqudp62x4M=";
-        version = "1.3.1";
+        version = "1.3.2";
         pname = "gleeter";
         src = ./.;
         gleam-helper = pkgs.callPackage ./nix/gleam-helper.nix { };

@@ -61,6 +61,10 @@ const select_comic_query = "
   select c.*, i.image_data, i.raw_data from comics c join images i on i.comic_number = c.number where c.number = ?
 "
 
+const count_elements_query = "
+  select count(1) from comics
+"
+
 fn convert_sqlight_error(in: sqlight.Error) -> String {
   let sqlight.SqlightError(_, desc, code) = in
   "sqlight error: "
@@ -235,5 +239,27 @@ pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
   case list.first(result) {
     Ok(e) -> option.Some(e) |> debug_print_x("Found result in cache")
     Error(_) -> option.None |> debug_print_x("No result in cache")
+  }
+}
+
+pub fn count_elements(cache: Cache) -> option.Option(Int) {
+  use db <- with_cache_select(cache)
+  debug_print("Counting elements")
+
+  let decoder = {
+    use number <- decode.field(0, decode.int)
+    decode.success(number)
+  }
+
+  sqlight.query(count_elements_query, db, [], decoder)
+  |> result.unwrap([])
+  |> list.first
+  |> option.from_result
+}
+
+pub fn is_cache_loaded(cache: Cache) -> Bool {
+  case cache {
+    Faulty(_) -> False
+    Cache(_, _, _) -> True
   }
 }
