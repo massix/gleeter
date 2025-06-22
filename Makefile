@@ -34,8 +34,8 @@ docker:
 	docker build --platform $(DOCKER_PLATFORM) -t $(DOCKER_HUB_REPOSITORY):$$(< result) .
 	docker tag $(DOCKER_HUB_REPOSITORY):$$(< result) $(DOCKER_HUB_REPOSITORY):latest
 
-.PHONY: docker-do
-docker-do:
+.PHONY: dockerdo
+dockerdo:
 	nix build .#version-file
 	docker build \
 		--platform $(DOCKER_PLATFORM) \

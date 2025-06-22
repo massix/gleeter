@@ -35,6 +35,6 @@ jobs:
     steps:
       - run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKERHUB_USER" --password-stdin
-          make docker-do DOCKER_PLATFORM=linux/amd64
+          make dockerdo DOCKER_PLATFORM=linux/amd64
           docker push --all-tags "$DOCKERHUB_USER/$DOCKERHUB_REPOSITORY"
     needs: docker-build-multiplatform
