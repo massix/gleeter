@@ -126,7 +126,8 @@ You can customize the base path for these endpoints by using the `<base_path>` a
 
 Gleeter also supports receiving the terminal size via HTTP headers. You can send the `X-TERMINAL-COLUMNS` and `X-TERMINAL-ROWS` headers with your request to specify the terminal size. This allows Gleeter to properly format the comic for your terminal. If these headers are not provided, Gleeter will use a default terminal size. Please be aware that for the resizing to work, you need to send **both** headers.
 
-On top of that, Serve mode will also honour all the aliases defined in the [configuration file](#configuration-file), and expose them all at the root of the `base_path`. As a quick example, imagine you have the following defined in the `config.toml` file:
+#### Serve and Configuration file
+Serve mode will also honour all the aliases defined in the [configuration file](#configuration-file), and expose them all at the root of the `base_path`. As a quick example, imagine you have the following defined in the `config.toml` file:
 ```toml
 [[alias]]
 name = "bobbytables"
@@ -146,6 +147,39 @@ And you start the server with `gleeter serve 8080 /comics`, on top of the URLs m
 *   `/comics/bobbytables`, which will be an alias for `/comics/id/987`
 *   `/comics/rnd`, which will be an alias for `/comics/random`
 *   `/comics/l`, which will be an alias for `/comics/latest`
+
+#### Health Check
+In addition to serving comics, Gleeter provides a `/health` endpoint. This endpoint returns a JSON structure with information about the server's status and performance. The structure includes the following fields:
+
+*   `cache_status`: A boolean indicating whether the cache is enabled.
+*   `cache_elements`: The number of elements currently stored in the cache.
+*   `processed_queries`: The number of queries processed by the server since it started.
+*   `current_version`: The version of Gleeter being run.
+*   `loaded_aliases`: A list of currently loaded alias names.
+
+Example response:
+
+```json
+{
+  "cache_status": true,
+  "cache_elements": 198,
+  "processed_queries": 4,
+  "current_version": "Gleeter v1.3.1 (https://github.com/massix/gleeter)",
+  "loaded_aliases": [
+    "wikipedia",
+    "programmers",
+    "compiling",
+    "sudo",
+    "standards",
+    "techsupport",
+    "bobbytables",
+    "tenthousand",
+    "correlation"
+  ]
+}
+```
+
+This endpoint can be useful for monitoring the health and performance of the server.
 
 ## How to install
 
