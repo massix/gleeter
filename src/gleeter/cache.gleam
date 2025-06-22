@@ -1,5 +1,4 @@
 import birl
-import debug.{debug_print, debug_print_x}
 import envoy
 import gleam/dynamic/decode
 import gleam/int
@@ -7,8 +6,9 @@ import gleam/list
 import gleam/option.{type Option}
 import gleam/result
 import gleam/uri
+import gleeter/debug.{debug_print, debug_print_x}
+import gleeter/xkcd
 import sqlight.{type Connection}
-import xkcd/api
 
 pub opaque type Cache {
   Faulty(error: String)
@@ -20,7 +20,7 @@ pub type Operation {
 }
 
 pub type ComicWithData {
-  ComicWithData(comic: api.Xkcd, data: String, raw_data: BitArray)
+  ComicWithData(comic: xkcd.Xkcd, data: String, raw_data: BitArray)
 }
 
 const create_table_query = "
@@ -146,10 +146,10 @@ pub fn insert_image(
   }
 }
 
-pub fn insert_comic(cache: Cache, comic comic: api.Xkcd) -> Cache {
+pub fn insert_comic(cache: Cache, comic comic: xkcd.Xkcd) -> Cache {
   debug_print("Inserting comic " <> int.to_string(comic.number))
   use db <- with_cache_insert(cache)
-  let api.Xkcd(
+  let xkcd.Xkcd(
     number:,
     publication_date:,
     link:,
@@ -212,7 +212,7 @@ pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
     let assert Ok(img_url) = uri.parse(img_url)
 
     decode.success(ComicWithData(
-      api.Xkcd(
+      xkcd.Xkcd(
         number:,
         publication_date:,
         link: link,

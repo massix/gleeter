@@ -9,7 +9,7 @@ import gleam/json
 import gleam/option
 import gleam/result
 import gleam/uri
-import version
+import gleeter/version
 
 const base_url = "https://xkcd.com"
 

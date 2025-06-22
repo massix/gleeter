@@ -1,4 +1,3 @@
-import debug.{debug_print}
 import gleam/bit_array
 import gleam/float
 import gleam/int
@@ -6,7 +5,8 @@ import gleam/list
 import gleam/result
 import gleam/string
 import gleam/string_tree
-import png
+import gleeter/debug.{debug_print}
+import gleeter/png
 import term_size
 
 pub type Chunk {

@@ -1,19 +1,19 @@
-import application_behavior
 import birl
 import birl/duration
-import cache
-import debug.{debug_print}
 import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option
 import gleam/result
+import gleeter/application_behavior
+import gleeter/cache
 import gleeter/config
-import kitty/graphics
-import png
-import serve
-import version
-import xkcd/api
+import gleeter/debug.{debug_print}
+import gleeter/graphics
+import gleeter/png
+import gleeter/serve
+import gleeter/version
+import gleeter/xkcd
 
 type PrintComic {
   Latest
@@ -21,11 +21,11 @@ type PrintComic {
   ID(Int)
 }
 
-fn print_api_error(in: api.APIError) -> Nil {
+fn print_api_error(in: xkcd.APIError) -> Nil {
   case in {
-    api.DecodeError(r) -> io.println("Could not decode API result: " <> r)
-    api.RequestError(r) -> io.println("Could not create request: " <> r)
-    api.GenericError(r) -> io.println("Generic error: " <> r)
+    xkcd.DecodeError(r) -> io.println("Could not decode API result: " <> r)
+    xkcd.RequestError(r) -> io.println("Could not create request: " <> r)
+    xkcd.GenericError(r) -> io.println("Generic error: " <> r)
   }
 }
 
@@ -41,15 +41,15 @@ fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
     option.Some(cd) -> Ok(cd)
     option.None -> {
       let xkcd = case id {
-        0 -> api.get_latest()
-        x -> api.get_comic(x)
+        0 -> xkcd.get_latest()
+        x -> xkcd.get_comic(x)
       }
       use xkcd <- result.try(
         xkcd
         |> result.map_error(print_api_error),
       )
       use raw_data <- result.try(
-        api.get_image(xkcd) |> result.map_error(print_api_error),
+        xkcd.get_image(xkcd) |> result.map_error(print_api_error),
       )
 
       use body <- result.try(
@@ -79,8 +79,8 @@ fn print_comic(
   use cached_comic <- result.try(case in {
     Latest -> get_comic(cache, 0)
     Random -> {
-      use api.Xkcd(number: highest, ..) <- result.try(
-        api.get_latest() |> result.map_error(print_api_error),
+      use xkcd.Xkcd(number: highest, ..) <- result.try(
+        xkcd.get_latest() |> result.map_error(print_api_error),
       )
       let random_comic = case config.random_start {
         option.Some(start) -> int.random(highest - start) + start
@@ -115,8 +115,14 @@ fn print_comic(
     option.None, option.None -> terminal_size
   }
 
-  let api.Xkcd(publication_date:, title:, alternative_text:, number:, link:, ..) =
-    xkcd
+  let xkcd.Xkcd(
+    publication_date:,
+    title:,
+    alternative_text:,
+    number:,
+    link:,
+    ..,
+  ) = xkcd
   io.print("[" <> int.to_string(number) <> "] ")
   io.print(title)
   io.print("   ")
