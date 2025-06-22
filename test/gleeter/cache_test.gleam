@@ -1,15 +1,15 @@
 import birdie
 import birl
-import cache.{type Cache}
 import envoy
 import gleam/option
 import gleam/regexp
 import gleam/uri
+import gleeter/cache.{type Cache}
+import gleeter/xkcd
 import pprint
 import startest.{describe, it}
 import startest/expect
 import startest/test_tree.{type TestTree}
-import xkcd/api
 
 fn remove_erlref(in: String) -> String {
   let assert Ok(re) = regexp.from_string("Esqlite3\\(.*\\)")
@@ -39,7 +39,7 @@ fn cache_insert_comic_tests(valid_cache: Cache) -> List(TestTree) {
       let assert Ok(img_url) = uri.parse("https://example.com/img1.png")
       let assert Ok(now) = birl.parse("2025-05-10T16:34:23.342Z")
       let comic =
-        api.Xkcd(
+        xkcd.Xkcd(
           number: 320,
           alternative_text: "alt_text",
           img_url:,
@@ -100,7 +100,7 @@ fn cache_get_comic_tests(valid_cache: Cache) -> List(TestTree) {
       let assert Ok(now) = birl.parse("2025-05-10T16:30:34Z")
       let assert Ok(uri) = uri.parse("https://example.com/1.png")
       valid_cache
-      |> cache.insert_comic(api.Xkcd(
+      |> cache.insert_comic(xkcd.Xkcd(
         now,
         120,
         option.None,

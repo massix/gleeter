@@ -1,7 +1,5 @@
 import birl
 import birl/duration
-import cache
-import debug.{debug_print}
 import gleam/bytes_tree
 import gleam/erlang/process
 import gleam/int
@@ -10,16 +8,18 @@ import gleam/list
 import gleam/option
 import gleam/result
 import gleam/uri
+import gleeter/cache
 import gleeter/config
-import kitty/graphics
+import gleeter/debug.{debug_print}
+import gleeter/graphics
+import gleeter/png
+import gleeter/version
+import gleeter/xkcd
 import messua
 import messua/err
 import messua/handle
 import messua/ok
 import messua/rr
-import png
-import version
-import xkcd/api
 
 type ApplicationContext {
   ApplicationContext(cache: cache.Cache, cfg: config.Configuration)
@@ -51,15 +51,15 @@ fn print_duration(start: birl.Time, end: birl.Time) -> Nil {
 fn handle_random(cache: cache.Cache) -> Result(cache.ComicWithData, Nil) {
   debug_print("Handling random")
   let start = birl.now()
-  use api.Xkcd(number:, ..) <- result.try(api.get_latest |> wrap_nil0())
+  use xkcd.Xkcd(number:, ..) <- result.try(xkcd.get_latest |> wrap_nil0())
   let random = int.random(number + 1)
 
   let result = case cache.get_comic(cache, random) {
     option.Some(cwd) -> Ok(cwd)
     option.None -> {
       debug_print("Not found in cache: " <> int.to_string(random))
-      use xkcd <- result.try(api.get_comic |> wrap_nil1(random))
-      use body <- result.try(api.get_image |> wrap_nil1(xkcd))
+      use xkcd <- result.try(xkcd.get_comic |> wrap_nil1(random))
+      use body <- result.try(xkcd.get_image |> wrap_nil1(xkcd))
       use result <- result.try(
         graphics.to_kitty_protocol_string |> wrap_nil2(body, 4096),
       )
@@ -80,8 +80,8 @@ fn handle_random(cache: cache.Cache) -> Result(cache.ComicWithData, Nil) {
 fn handle_latest() -> Result(cache.ComicWithData, Nil) {
   debug_print("Handling latest")
   let start = birl.now()
-  use latest <- result.try(api.get_latest |> wrap_nil0)
-  use body <- result.try(api.get_image |> wrap_nil1(latest))
+  use latest <- result.try(xkcd.get_latest |> wrap_nil0)
+  use body <- result.try(xkcd.get_image |> wrap_nil1(latest))
   use result <- result.try(
     graphics.to_kitty_protocol_string |> wrap_nil2(body, 4096),
   )
@@ -97,8 +97,8 @@ fn handle_id(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
     option.Some(cwd) -> Ok(cwd)
     option.None -> {
       debug_print("Not found in cache: " <> int.to_string(id))
-      use xkcd <- result.try(api.get_comic |> wrap_nil1(id))
-      use body <- result.try(api.get_image |> wrap_nil1(xkcd))
+      use xkcd <- result.try(xkcd.get_comic |> wrap_nil1(id))
+      use body <- result.try(xkcd.get_image |> wrap_nil1(xkcd))
       use result <- result.try(
         graphics.to_kitty_protocol_string |> wrap_nil2(body, 4096),
       )

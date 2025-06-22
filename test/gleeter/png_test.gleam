@@ -1,4 +1,4 @@
-import png
+import gleeter/png
 import simplifile
 import startest.{describe, it}
 import startest/expect

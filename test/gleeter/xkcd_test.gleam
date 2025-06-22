@@ -1,12 +1,12 @@
 import birl
 import gleam/uri
+import gleeter/xkcd
 import simplifile
 import startest.{describe, it}
 import startest/expect
-import xkcd/api
 
 pub fn xkcd_tests() {
-  describe("xkcd/api", [decode_test()])
+  describe("gleeter/xkcd", [decode_test()])
 }
 
 fn check_result(
@@ -19,8 +19,8 @@ fn check_result(
   let assert Ok(data) = simplifile.read(sample_file)
   let assert Ok(expected_img_url) = uri.parse(expected_img_url)
 
-  let api.Xkcd(number:, title:, img_url:, publication_date:, ..) =
-    api.api_decoder(data)
+  let xkcd.Xkcd(number:, title:, img_url:, publication_date:, ..) =
+    xkcd.api_decoder(data)
     |> expect.to_be_ok
 
   expect.to_equal(number, expected_num)

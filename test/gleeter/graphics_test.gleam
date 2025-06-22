@@ -1,12 +1,12 @@
 import gleam/list
-import kitty/graphics
-import png
+import gleeter/graphics
+import gleeter/png
 import simplifile
 import startest.{describe, it, xit}
 import startest/expect
 
 pub fn graphics_tests() {
-  describe("kitty/graphics", [
+  describe("gleeter/graphics", [
     terminal_size(),
     image_size(),
     string_split_into_chunks_test(),

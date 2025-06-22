@@ -1,4 +1,4 @@
-import application_behavior
+import gleeter/application_behavior
 import gleeter/config.{IdAlias, LatestAlias, RandomAlias}
 import startest.{describe, it}
 import startest/expect
