@@ -24,7 +24,7 @@
             sqlite
           ];
         };
-        overlays = _: _: { gleeter = self.packages.${system}.gleeter; };
+        overlays = _: _: { inherit (self.packages.${system}) gleeter; };
         packages = {
           gleeter = gleam-helper.buildGleamPackage {
             inherit pname version src gleamPackagesHash;
