@@ -10,6 +10,32 @@ type = "id"
 id = 987
 
 [[alias]]
+name = "" # Empty name
+type = "id"
+id = 123
+
+[[alias]]
+name = "  trimmed_alias "
+type = "id"
+id = 987
+
+[[alias]]
+name = "     with spaces    "
+type = "random"
+
+[[alias]]
+name = "with!special"
+type = "latest"
+
+[[alias]]
+name = "with;special"
+type = "latest"
+
+[[alias]]
+name = "with(special"
+type = "random"
+
+[[alias]]
 name = "rnd"
 type = "random"
 
