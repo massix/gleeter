@@ -99,12 +99,12 @@ The configuration file is loaded when Gleeter starts. Gleeter looks for the conf
     *   `max_cols`: Specifies the maximum number of columns to use for displaying the comic.
     *   `max_lines`: Specifies the maximum number of lines to use for displaying the comic.
 
-*   **`[[alias]]`**: This section defines aliases for accessing comics. You can define multiple aliases.
-    *   `name`: The name of the alias.
+*   `[[alias]]`**: This section defines aliases for accessing comics. You can define multiple aliases.
+    *   `name`: The name of the alias. Alias names **must not** be empty and **must not** contain any of the following characters: `!`, `;`, `$`, `:`, `\`, `"`, `'`, `(`, `)`, space, tab, newline, or carriage return. Leading and trailing whitespaces will be automatically removed.
     *   `type`: The type of alias. Valid values are `"id"`, `"random"`, and `"latest"`.
     *   `id`: (Only required for `"id"` aliases) The comic ID to associate with the alias.
 
-The `src/gleeter/config.gleam` file defines the structure of the configuration data and how it is parsed from the TOML file.
+The [config.gleam](src/gleeter/config.gleam) file defines the structure of the configuration data and how it is parsed from the TOML file.
 
 To modify Gleeter's behavior, simply edit the configuration file and restart the application.
 
