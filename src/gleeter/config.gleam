@@ -3,6 +3,7 @@ import gleam/dict
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam/string
 import simplifile
 import tom
 
@@ -63,19 +64,60 @@ fn or_empty(
   }
 }
 
+type NameString {
+  Invalid
+  Valid(String)
+}
+
+const forbidden_chars: List(String) = [
+  "!", ";", "$", ":", "\\", "\"", "'", "(", ")", " ", "\t", "\n", "\r",
+]
+
+fn validate_name(in: Result(String, a)) -> NameString {
+  let with_valid = fn(in: NameString, next: fn(String) -> NameString) -> NameString {
+    case in {
+      Invalid -> Invalid
+      Valid(s) -> next(s)
+    }
+  }
+
+  let check_trim = fn(in: NameString) -> NameString {
+    use s <- with_valid(in)
+    case string.trim(s) {
+      "" -> Invalid
+      s -> Valid(s)
+    }
+  }
+
+  let check_special = fn(in: NameString) -> NameString {
+    use s <- with_valid(in)
+    case string.to_graphemes(s) |> list.any(list.contains(forbidden_chars, _)) {
+      True -> Invalid
+      False -> Valid(s)
+    }
+  }
+
+  case in {
+    Ok(s) -> {
+      Valid(s) |> check_trim |> check_special
+    }
+    Error(_) -> Invalid
+  }
+}
+
 fn parse_alias(in: dict.Dict(String, tom.Toml)) -> option.Option(Alias) {
-  let name = tom.get_string(in, ["name"]) |> option.from_result
+  let name = tom.get_string(in, ["name"]) |> validate_name
   let alias_type = tom.get_string(in, ["type"]) |> option.from_result
   let comic_id = tom.get_int(in, ["id"]) |> option.from_result
 
   case name, alias_type, comic_id {
-    option.Some(name), option.Some("id"), option.Some(comic_id) -> {
+    Valid(name), option.Some("id"), option.Some(comic_id) -> {
       IdAlias(name, comic_id) |> option.Some
     }
-    option.Some(name), option.Some("latest"), _ -> {
+    Valid(name), option.Some("latest"), _ -> {
       LatestAlias(name) |> option.Some
     }
-    option.Some(name), option.Some("random"), _ -> {
+    Valid(name), option.Some("random"), _ -> {
       RandomAlias(name) |> option.Some
     }
     _, _, _ -> option.None

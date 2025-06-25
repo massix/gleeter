@@ -29,6 +29,7 @@ pub fn config_tests() -> test_tree.TestTree {
       |> expect.to_equal(
         Configuration(Some(38), Some(80), Some(23), [
           IdAlias("bobbytables", 987),
+          IdAlias("trimmed_alias", 987),
           RandomAlias("rnd"),
           LatestAlias("l"),
         ]),
