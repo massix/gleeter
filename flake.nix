@@ -9,7 +9,7 @@
       let
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) mkShell;
-        gleamPackagesHash = "sha256-DIY9OA3ZigaVC2gxvwgCrF8rjNIraSy7mVqudp62x4M=";
+        gleamPackagesHash = "sha256-qXxGdvZ3FBmszKj+pHv4WI5NANHjLedPqInJlhFba3w=";
         version = "1.3.3";
         pname = "gleeter";
         src = ./.;

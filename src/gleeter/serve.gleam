@@ -15,6 +15,7 @@ import gleeter/cache
 import gleeter/config
 import gleeter/debug.{debug_print}
 import gleeter/graphics
+import gleeter/metrics
 import gleeter/png
 import gleeter/version
 import gleeter/xkcd
@@ -23,6 +24,7 @@ import messua/err
 import messua/handle
 import messua/ok
 import messua/rr
+import themis
 
 type ApplicationContext {
   ApplicationContext(
@@ -132,8 +134,12 @@ fn handle_random(cache: cache.Cache) -> Result(cache.ComicWithData, Nil) {
   let random = int.random(number + 1)
 
   let result = case cache.get_comic(cache, random) {
-    option.Some(cwd) -> Ok(cwd)
+    option.Some(cwd) -> {
+      metrics.increment_cache_hits("random")
+      Ok(cwd)
+    }
     option.None -> {
+      metrics.increment_cache_miss("random")
       debug_print("Not found in cache: " <> int.to_string(random))
       use xkcd <- result.try(xkcd.get_comic |> wrap_nil1(random))
       use body <- result.try(xkcd.get_image |> wrap_nil1(xkcd))
@@ -145,12 +151,16 @@ fn handle_random(cache: cache.Cache) -> Result(cache.ComicWithData, Nil) {
       |> cache.insert_image(xkcd.number, result, body)
 
       debug_print("Found comic: " <> int.to_string(xkcd.number))
+      metrics.increment_cached_elements()
 
       Ok(cache.ComicWithData(xkcd, result, body))
     }
   }
 
-  print_duration(start, birl.now())
+  let end = birl.now()
+  print_duration(start, end)
+  metrics.update_request_duration(start, end, "random")
+  metrics.increment_processed_queries("random")
   result
 }
 
@@ -163,7 +173,10 @@ fn handle_latest() -> Result(cache.ComicWithData, Nil) {
     graphics.to_kitty_protocol_string |> wrap_nil2(body, 4096),
   )
 
-  print_duration(start, birl.now())
+  let end = birl.now()
+  print_duration(start, end)
+  metrics.increment_processed_queries("latest")
+  metrics.update_request_duration(start, end, "latest")
   Ok(cache.ComicWithData(latest, result, body))
 }
 
@@ -171,8 +184,12 @@ fn handle_id(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
   debug_print("Handling id: " <> int.to_string(id))
   let start = birl.now()
   let result = case cache.get_comic(cache, id) {
-    option.Some(cwd) -> Ok(cwd)
+    option.Some(cwd) -> {
+      metrics.increment_cache_hits("id")
+      Ok(cwd)
+    }
     option.None -> {
+      metrics.increment_cache_miss("id")
       debug_print("Not found in cache: " <> int.to_string(id))
       use xkcd <- result.try(xkcd.get_comic |> wrap_nil1(id))
       use body <- result.try(xkcd.get_image |> wrap_nil1(xkcd))
@@ -184,12 +201,16 @@ fn handle_id(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
       |> cache.insert_image(xkcd.number, result, body)
 
       debug_print("Found comic: " <> int.to_string(xkcd.number))
+      metrics.increment_cached_elements()
 
       Ok(cache.ComicWithData(xkcd, result, body))
     }
   }
 
-  print_duration(start, birl.now())
+  let end = birl.now()
+  print_duration(start, end)
+  metrics.update_request_duration(start, end, "id")
+  metrics.increment_processed_queries("id")
   result
 }
 
@@ -237,6 +258,7 @@ fn strip_base_path(
 type PathResult {
   Json(json.Json, Int)
   Comic(cache.ComicWithData)
+  Prometheus(String)
 }
 
 fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
@@ -282,6 +304,13 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
             build_health_check(context)
             |> encode_health_check
             |> Json(200)
+          }
+          ["metrics"] -> {
+            metrics.update_memory()
+            case themis.print() {
+              Ok(s) -> Prometheus(s)
+              Error(_) -> Prometheus("")
+            }
           }
           ["random"] -> {
             handle_random(cache)
@@ -342,7 +371,6 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
         |> err.with_header("X-Server-Version", version.gleeter_version)
         |> err.with_message([json.to_string_tree(data) |> string_tree.to_string])
         |> err.to_response(fn(_) { Nil })
-        |> Ok
       }
       Comic(cd) -> {
         process.send(actor, Inc)
@@ -351,9 +379,15 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
         |> ok.with_header("Content-Type", "text/plain")
         |> ok.with_header("X-Server-Version", version.gleeter_version)
         |> ok.with_binary_body(cd |> to_printable(terminal_size))
-        |> Ok
+      }
+      Prometheus(result) -> {
+        ok.ok()
+        |> ok.with_header("Content-Type", "text/plain")
+        |> ok.with_header("X-Server-Version", version.gleeter_version)
+        |> ok.with_text_body(result)
       }
     }
+    |> Ok
   }
 }
 
@@ -365,6 +399,7 @@ pub fn serve(
 ) -> Nil {
   io.println("Serving on port " <> int.to_string(port))
   let assert Ok(actor) = actor.start(0, process_request)
+  metrics.init()
 
   messua.default()
   |> messua.with_http(port)
