@@ -181,6 +181,31 @@ Example response:
 
 This endpoint can be useful for monitoring the health and performance of the server.
 
+#### Prometheus Metrics
+
+Gleeter exposes Prometheus metrics that can be used to monitor the server's performance and health. These metrics are available at the `/<base_path>/metrics` endpoint in the Prometheus format.
+
+The following metrics are exposed:
+
+*   `gleeter:http_request_duration_seconds`: A histogram of the duration of HTTP requests in seconds. Labels include the method used (i.e.: "random", "id" or "latest"). Buckets are: `0.1`, `0.25`, `0.5`, `0.75`, `1.0`, `1.5`.
+*   `gleeter:processed_queries_total`: A counter of the total number of processed queries, labeled by comic method (again: "random", "id" or "latest").
+*   `gleeter:cache_hits_total`: A counter of the total number of cache hits, labeled by comic method.
+*   `gleeter:cache_miss_total`: A counter of the total number of cache misses, labeled by comic method.
+*   `gleeter:cached_elements_total`: A counter of the total number of elements currently stored in the cache.
+*   `gleeter:memory_used_bytes`: A gauge of the memory used by the Erlang VM in bytes, with labels for different memory slices (e.g., "system", "processes", "ets", "code", "binary", "atom").
+
+These metrics can be used to create dashboards and alerts to monitor the Gleeter server's performance.
+
+A [docker-compose.yaml](./docker-test/docker-compose.yaml) file is provided in the [docker-test](./docker-test/) directory to facilitate local testing with Prometheus and Grafana. To deploy the stack locally, simply run `make docker-test`.  The stack will also automatically configure Grafana to use the Prometheus datasource, which is in turn pre-configured to scrape the metrics from the gleeter service.
+
+Once the stack is running:
+
+1.  Access Grafana in your web browser at `http://localhost:3000`.
+2.  Log in with username `gleeter` and password `gleeter`.
+3.  Import the [Gleeter-dashboard.json](./docker-test/Gleeter-dashboard.json) dashboard file into Grafana to visualize the Gleeter metrics. You can do this by navigating to "Dashboards" -> "New" -> "Import" and uploading the JSON file.
+
+This setup allows you to easily monitor Gleeter's performance and health locally using Prometheus and Grafana.  The provided dashboard includes panels for displaying processed queries, cache statistics, memory usage, and request duration.
+
 ## How to install
 
 Gleeter should be compatible with any operating system that supports [Gleam](https://gleam.run) and [Erlang](https://www.erlang.org/). It has been tested on NixOS and MacOS Darwin. Installation instructions may vary depending on your specific system.
