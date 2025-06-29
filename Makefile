@@ -12,6 +12,12 @@ deps:
 test: deps
 	$(GLEAM) test -t erlang
 
+.PHONY: test-docker
+test-docker:
+	cd docker-test && \
+	docker compose down && \
+	docker compose up --build
+
 .PHONY: build
 build: deps
 	$(GLEAM) build -t erlang

@@ -1,0 +1,42 @@
+networks:
+  internal:
+    attachable: false
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.4.2
+    volumes:
+      - type: bind
+        source: ./prometheus-config.yaml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+    networks: [internal]
+    ports:
+      - target: 9090
+        published: 9090
+    depends_on: [gleeter]
+  grafana:
+    image: grafana/grafana:12.0.2
+    networks: [internal]
+    environment:
+      GF_SERVER_PROTOCOL: http
+      GF_SECURITY_ADMIN_USER: gleeter
+      GF_SECURITY_ADMIN_PASSWORD: gleeter
+    ports:
+      - target: 3000
+        published: 3000
+    volumes:
+      - type: bind
+        source: ./grafana-provisioning.yaml
+        target: /etc/grafana/provisioning/datasources/automatic.yaml
+  gleeter:
+    image: gleeter:local-build
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    ports:
+      - target: 9999
+        published: 8080
+        protocol: tcp
+    networks: [internal]
+    command: ["serve", "9999", "comics"]
