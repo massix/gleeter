@@ -22,6 +22,8 @@ const cached_elements = "gleeter:cached_elements_total"
 
 const memory_used = "gleeter:memory_used_bytes"
 
+const invalid_requests = "gleeter:http_invalid_requests_total"
+
 type Memory {
   Processes(m: Int)
   ProcessesUsed(m: Int)
@@ -46,6 +48,8 @@ pub fn init() -> Nil {
     counter.new(processed_queries, "Number of processed queries")
   let assert Ok(_) = counter.new(cache_hits, "Number of cache hits")
   let assert Ok(_) = counter.new(cache_miss, "Number of cache misses")
+  let assert Ok(_) =
+    counter.new(invalid_requests, "Number of invalid HTTP requests")
   let assert Ok(_) =
     gauge.new(memory_used, "Memory used in bytes by the Erlang VM")
 
@@ -85,6 +89,12 @@ pub fn update_request_duration(
 pub fn increment_processed_queries(method: String) -> Nil {
   let labels = dict.from_list([#("method", method)])
   let assert Ok(_) = counter.increment(processed_queries, labels)
+  Nil
+}
+
+pub fn increment_invalid_requests() -> Nil {
+  let labels = dict.new()
+  let assert Ok(_) = counter.increment(invalid_requests, labels)
   Nil
 }
 

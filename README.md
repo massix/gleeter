@@ -193,6 +193,7 @@ The following metrics are exposed:
 *   `gleeter:cache_miss_total`: A counter of the total number of cache misses, labeled by comic method.
 *   `gleeter:cached_elements_total`: A counter of the total number of elements currently stored in the cache.
 *   `gleeter:memory_used_bytes`: A gauge of the memory used by the Erlang VM in bytes, with labels for different memory slices (e.g., "system", "processes", "ets", "code", "binary", "atom").
+*   `gleeter:http_invalid_requests_total`: A counter of the total number of invalid HTTP requests.
 
 These metrics can be used to create dashboards and alerts to monitor the Gleeter server's performance.
 
