@@ -322,8 +322,10 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
                 handle_id(cache, num)
                 |> comic_or_error("Failed to load comic")
               }
-              Error(_) ->
+              Error(_) -> {
+                metrics.increment_invalid_requests()
                 ApiError("Invalid id provided") |> encode_api_error |> Json(400)
+              }
             }
           }
           ["latest"] | [] -> {
@@ -351,17 +353,22 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
                   }
                 }
               Error(_) -> {
+                metrics.increment_invalid_requests()
                 ApiError("Not found") |> encode_api_error |> Json(404)
               }
             }
           }
           _ -> {
+            metrics.increment_invalid_requests()
             ApiError("Not found")
             |> encode_api_error
             |> Json(404)
           }
         }
-      _ -> ApiError("Not found") |> encode_api_error |> Json(404)
+      _ -> {
+        metrics.increment_invalid_requests()
+        ApiError("Not found") |> encode_api_error |> Json(404)
+      }
     }
 
     case result {
