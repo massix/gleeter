@@ -243,13 +243,22 @@ fn to_printable(
 }
 
 /// Given a base path and a path, strip the base path from the path
-fn strip_base_path(
+pub fn strip_base_path(
   base_path: List(String),
   received_path: List(String),
+  configuration: config.Configuration,
 ) -> Result(List(String), Nil) {
+  let metrics_ignore_base_path = {
+    case configuration.metrics_configuration {
+      option.None -> False
+      option.Some(mc) -> mc.ignore_base_path
+    }
+  }
+
   case base_path, received_path {
+    _, ["metrics"] if metrics_ignore_base_path -> Ok(["metrics"])
     [], rest -> Ok(rest)
-    [x, ..xs], [y, ..ys] if x == y -> strip_base_path(xs, ys)
+    [x, ..xs], [y, ..ys] if x == y -> strip_base_path(xs, ys, configuration)
     [_, ..], [_, ..] -> Error(Nil)
     _, [] -> Error(Nil)
   }
@@ -269,7 +278,7 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
     let ApplicationContext(cache, config, actor) as context = rr.state(s)
     let path_segments =
       base_path
-      |> strip_base_path(handle.path_segments(s))
+      |> strip_base_path(handle.path_segments(s), config)
 
     use terminal_columns <- handle.require_valid_optional_header(
       s,
