@@ -87,19 +87,27 @@ type = "random"
 [[alias]]
 name = "l"
 type = "latest"
+
+[metrics]
+ignore_base_path = true
+username = "your_username"
+password = "your_password"
 ```
 
 ### Structure and Usage
 
 The configuration file is loaded when Gleeter starts. Gleeter looks for the configuration file in `$XDG_CONFIG_HOME/gleeter/config.toml` or `$HOME/.config/gleeter/config.toml`. If neither of these is found, it uses `./config.toml`.  The settings defined in the file are used to initialize the application and control its behavior.
 
-*   **`random_start`**: Specifies the starting comic number for the random comic selection. If not specified, a default value is used.
+*   `random_start`: Specifies the starting comic number for the random comic selection. If not specified, a default value is used.
 
-*   **`[screen]`**: This section configures the screen dimensions for displaying comics.
+*   `[screen]`: This section configures the screen dimensions for displaying comics.
     *   `max_cols`: Specifies the maximum number of columns to use for displaying the comic.
     *   `max_lines`: Specifies the maximum number of lines to use for displaying the comic.
-
-*   `[[alias]]`**: This section defines aliases for accessing comics. You can define multiple aliases.
+*   `[metrics]`: This section configures the metrics endpoint.
+    *   `ignore_base_path`: If set to `true`, the `/metrics` endpoint will be accessible even when a base path is used. This allows accessing metrics at `/metrics` regardless of the configured base path.
+    *   `username`: An optional username for basic authentication on the `/metrics` endpoint. If provided, a password must also be specified.
+    *   `password`: An optional password for basic authentication on the `/metrics` endpoint. If provided, a username must also be specified.
+*   `[[alias]]`: This section defines aliases for accessing comics. You can define multiple aliases.
     *   `name`: The name of the alias. Alias names **must not** be empty and **must not** contain any of the following characters: `!`, `;`, `$`, `:`, `\`, `"`, `'`, `(`, `)`, space, tab, newline, or carriage return. Leading and trailing whitespaces will be automatically removed.
     *   `type`: The type of alias. Valid values are `"id"`, `"random"`, and `"latest"`.
     *   `id`: (Only required for `"id"` aliases) The comic ID to associate with the alias.
@@ -183,7 +191,9 @@ This endpoint can be useful for monitoring the health and performance of the ser
 
 #### Prometheus Metrics
 
-Gleeter exposes Prometheus metrics that can be used to monitor the server's performance and health. These metrics are available at the `/<base_path>/metrics` endpoint in the Prometheus format.
+Gleeter exposes Prometheus metrics that can be used to monitor the server's performance and health. These metrics are available at the `/<base_path>/metrics` and **optionally** also at the `/metrics` path (the behavior is configurable via the configuration file).
+
+It is also possible to protect the endpoint with basic authentication by setting a username and password in the configuration file. If authentication is enabled, you will need to provide the correct credentials to access the metrics endpoint. Only [Basic authorization](https://en.wikipedia.org/wiki/Basic_access_authentication) is supported right now.
 
 The following metrics are exposed:
 
