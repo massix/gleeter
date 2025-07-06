@@ -1,0 +1,4 @@
+[metrics]
+ignore_base_path = false
+username = "something"
+# Missing password, so this is invalid

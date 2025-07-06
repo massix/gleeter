@@ -1,8 +1,8 @@
 import envoy
 import gleam/option.{None, Some}
 import gleeter/config.{
-  Configuration, IdAlias, LatestAlias, RandomAlias, get_configuration_file,
-  parse,
+  Configuration, IdAlias, LatestAlias, MetricsConfiguration, RandomAlias,
+  get_configuration_file, parse,
 }
 import startest.{describe, it}
 import startest/expect
@@ -27,7 +27,7 @@ pub fn config_tests() -> test_tree.TestTree {
     it("parses configuration", fn() {
       parse("test_data/config.toml")
       |> expect.to_equal(
-        Configuration(Some(38), Some(80), Some(23), [
+        Configuration(Some(38), Some(80), Some(23), None, [
           IdAlias("bobbytables", 987),
           IdAlias("trimmed_alias", 987),
           RandomAlias("rnd"),
@@ -38,12 +38,38 @@ pub fn config_tests() -> test_tree.TestTree {
     it("ignores invalid stuff", fn() {
       parse("test_data/config_invalid.toml")
       |> expect.to_equal(
-        Configuration(None, Some(31), None, [IdAlias("valid", 123)]),
+        Configuration(None, Some(31), None, None, [IdAlias("valid", 123)]),
       )
     }),
     it("returns empty configuration if file is missing", fn() {
       parse("test_data/nonexistant.toml")
-      |> expect.to_equal(Configuration(None, None, None, []))
+      |> expect.to_equal(Configuration(None, None, None, None, []))
     }),
+    describe("metrics", [
+      it("parses all values if they are present", fn() {
+        parse("test_data/config_metrics.toml")
+        |> expect.to_equal(
+          Configuration(
+            None,
+            None,
+            None,
+            Some(MetricsConfiguration(True, Some(#("username", "password")))),
+            [],
+          ),
+        )
+      }),
+      it("skips username or password if one is missing", fn() {
+        parse("test_data/config_metrics_missing.toml")
+        |> expect.to_equal(
+          Configuration(
+            None,
+            None,
+            None,
+            Some(MetricsConfiguration(False, None)),
+            [],
+          ),
+        )
+      }),
+    ]),
   ])
 }

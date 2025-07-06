@@ -1,12 +1,13 @@
 import birl
 import birl/duration
+import gleam/bit_array
 import gleam/bytes_tree
 import gleam/erlang/process
 import gleam/int
 import gleam/io
 import gleam/json
 import gleam/list
-import gleam/option
+import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
 import gleam/result
 import gleam/string_tree
@@ -134,11 +135,11 @@ fn handle_random(cache: cache.Cache) -> Result(cache.ComicWithData, Nil) {
   let random = int.random(number + 1)
 
   let result = case cache.get_comic(cache, random) {
-    option.Some(cwd) -> {
+    Some(cwd) -> {
       metrics.increment_cache_hits("random")
       Ok(cwd)
     }
-    option.None -> {
+    None -> {
       metrics.increment_cache_miss("random")
       debug_print("Not found in cache: " <> int.to_string(random))
       use xkcd <- result.try(xkcd.get_comic |> wrap_nil1(random))
@@ -184,11 +185,11 @@ fn handle_id(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
   debug_print("Handling id: " <> int.to_string(id))
   let start = birl.now()
   let result = case cache.get_comic(cache, id) {
-    option.Some(cwd) -> {
+    Some(cwd) -> {
       metrics.increment_cache_hits("id")
       Ok(cwd)
     }
-    option.None -> {
+    None -> {
       metrics.increment_cache_miss("id")
       debug_print("Not found in cache: " <> int.to_string(id))
       use xkcd <- result.try(xkcd.get_comic |> wrap_nil1(id))
@@ -216,10 +217,10 @@ fn handle_id(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
 
 fn to_printable(
   in: cache.ComicWithData,
-  terminal_size: option.Option(graphics.TerminalSize),
+  terminal_size: Option(graphics.TerminalSize),
 ) -> bytes_tree.BytesTree {
   let data = case terminal_size, png.get_image_size(in.raw_data) {
-    option.Some(ts), Ok(is) -> {
+    Some(ts), Ok(is) -> {
       graphics.resize_image(in.data, is, ts)
     }
     _, _ -> in.data
@@ -243,13 +244,22 @@ fn to_printable(
 }
 
 /// Given a base path and a path, strip the base path from the path
-fn strip_base_path(
+pub fn strip_base_path(
   base_path: List(String),
   received_path: List(String),
+  configuration: config.Configuration,
 ) -> Result(List(String), Nil) {
+  let metrics_ignore_base_path = {
+    case configuration.metrics_configuration {
+      None -> False
+      Some(mc) -> mc.ignore_base_path
+    }
+  }
+
   case base_path, received_path {
+    _, ["metrics"] if metrics_ignore_base_path -> Ok(["metrics"])
     [], rest -> Ok(rest)
-    [x, ..xs], [y, ..ys] if x == y -> strip_base_path(xs, ys)
+    [x, ..xs], [y, ..ys] if x == y -> strip_base_path(xs, ys, configuration)
     [_, ..], [_, ..] -> Error(Nil)
     _, [] -> Error(Nil)
   }
@@ -261,6 +271,59 @@ type PathResult {
   Prometheus(String)
 }
 
+/// This will first check if an authentication is needed
+fn handle_metrics(
+  config: config.Configuration,
+  s: StatefulRequest,
+) -> PathResult {
+  // First, build the expected base64 encoded stuff, if needed
+  let base64_creds = {
+    use creds <- option.then(config.metrics_configuration)
+    use #(username, password) <- option.then(creds.auth_credentials)
+
+    bytes_tree.new()
+    |> bytes_tree.append_string(username)
+    |> bytes_tree.append_string(":")
+    |> bytes_tree.append_string(password)
+    |> bytes_tree.to_bit_array()
+    |> bit_array.base64_encode(True)
+    |> Some
+  }
+
+  // Then, retrieve the header and strip away the unneeded part
+  let authorization_header = {
+    use header <- option.then(handle.get_header(s, "Authorization"))
+    case header {
+      "Basic " <> base64_received_creds -> Some(base64_received_creds)
+      _ -> None
+    }
+  }
+
+  // Lazily calculate the result
+  let ok_path = fn() {
+    metrics.update_memory()
+    case themis.print() {
+      Ok(p) -> Prometheus(p)
+      Error(_) -> Prometheus("")
+    }
+  }
+
+  case base64_creds, authorization_header {
+    // No authentication needed, we do not care about the header stuff
+    None, _ -> ok_path()
+
+    // Authentication needed, we have the header and the two encoded strings match
+    Some(creds), Some(received_creds) if creds == received_creds -> ok_path()
+
+    // If we are here, the authentication is needed but the header is either missing or invalid
+    _, _ -> {
+      ApiError("Unauthorized")
+      |> encode_api_error()
+      |> Json(401)
+    }
+  }
+}
+
 fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
   io.println("Serving at base path: " <> base_path)
   let base_path = uri.path_segments(base_path)
@@ -269,7 +332,7 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
     let ApplicationContext(cache, config, actor) as context = rr.state(s)
     let path_segments =
       base_path
-      |> strip_base_path(handle.path_segments(s))
+      |> strip_base_path(handle.path_segments(s), config)
 
     use terminal_columns <- handle.require_valid_optional_header(
       s,
@@ -284,9 +347,8 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
     )
 
     let terminal_size = case terminal_columns, terminal_rows {
-      option.Some(columns), option.Some(rows) ->
-        option.Some(graphics.TerminalSize(rows, columns))
-      _, _ -> option.None
+      Some(columns), Some(rows) -> Some(graphics.TerminalSize(rows, columns))
+      _, _ -> None
     }
 
     let comic_or_error = fn(
@@ -305,13 +367,7 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
             |> encode_health_check
             |> Json(200)
           }
-          ["metrics"] -> {
-            metrics.update_memory()
-            case themis.print() {
-              Ok(s) -> Prometheus(s)
-              Error(_) -> Prometheus("")
-            }
-          }
+          ["metrics"] -> handle_metrics(config, s)
           ["random"] -> {
             handle_random(cache)
             |> comic_or_error("Failed to load random comic")
