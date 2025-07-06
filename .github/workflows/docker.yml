@@ -38,6 +38,8 @@ jobs:
       - uses: nicknovitski/nix-develop@v1
       - run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "$DOCKERHUB_USER" --password-stdin
+          echo "username = \"${{ secrets.METRICS_USERNAME }}\"" >> docker-digitalocean/config.toml
+          echo "password = \"${{ secrets.METRICS_PASSWORD }}\"" >> docker-digitalocean/config.toml
           make dockerdo DOCKER_PLATFORM=linux/amd64
           docker push --all-tags "$DOCKERHUB_USER/$DOCKERHUB_REPOSITORY"
     needs: docker-build-multiplatform

@@ -46,3 +46,6 @@ id = 552
 [[alias]]
 name = "r"
 type = "random"
+
+[metrics]
+ignore_base_path = true
