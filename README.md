@@ -9,7 +9,6 @@ Gleeter is known to work well with the following terminals:
 *   [Ghostty](https://ghostty.dev/)
 *   [Kitty](https://sw.kovidgoyal.net/kitty/)
 *   [Wezterm](https://wezfurlong.org/wezterm/)
-*   [iTerm2](https://iterm2.com/)
 *   ... and probably more
 
 ## Test it out now
