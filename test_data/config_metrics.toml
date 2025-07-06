@@ -1,0 +1,4 @@
+[metrics]
+ignore_base_path = true
+username = "username"
+password = "password"

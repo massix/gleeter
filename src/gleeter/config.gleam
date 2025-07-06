@@ -12,7 +12,15 @@ pub type Configuration {
     random_start: option.Option(Int),
     max_cols: option.Option(Int),
     max_lines: option.Option(Int),
+    metrics_configuration: option.Option(MetricsConfiguration),
     aliases: List(Alias),
+  )
+}
+
+pub type MetricsConfiguration {
+  MetricsConfiguration(
+    ignore_base_path: Bool,
+    auth_credentials: option.Option(#(String, String)),
   )
 }
 
@@ -30,6 +38,7 @@ fn default() -> Configuration {
     random_start: option.None,
     max_cols: option.None,
     max_lines: option.None,
+    metrics_configuration: option.None,
     aliases: [],
   )
 }
@@ -105,6 +114,26 @@ fn validate_name(in: Result(String, a)) -> NameString {
   }
 }
 
+fn parse_metrics_configuration(
+  in: Result(dict.Dict(String, tom.Toml), b),
+) -> option.Option(MetricsConfiguration) {
+  case in {
+    Error(_) -> option.None
+    Ok(parsed) -> {
+      let ignore_base_path = tom.get_bool(parsed, ["ignore_base_path"])
+      let username = tom.get_string(parsed, ["username"])
+      let password = tom.get_string(parsed, ["password"])
+
+      case ignore_base_path, username, password {
+        Ok(ib), Ok(u), Ok(p) ->
+          option.Some(MetricsConfiguration(ib, option.Some(#(u, p))))
+        Ok(ib), _, _ -> option.Some(MetricsConfiguration(ib, option.None))
+        _, _, _ -> option.None
+      }
+    }
+  }
+}
+
 fn parse_alias(in: dict.Dict(String, tom.Toml)) -> option.Option(Alias) {
   let name = tom.get_string(in, ["name"]) |> validate_name
   let alias_type = tom.get_string(in, ["type"]) |> option.from_result
@@ -156,5 +185,14 @@ pub fn parse(in: ConfigFile) -> Configuration {
       alias
     })
 
-  Configuration(random_start, max_cols, max_lines, aliases)
+  let metrics_configuration =
+    parse_metrics_configuration(tom.get_table(parsed, ["metrics"]))
+
+  Configuration(
+    random_start,
+    max_cols,
+    max_lines,
+    metrics_configuration,
+    aliases,
+  )
 }
