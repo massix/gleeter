@@ -103,7 +103,7 @@ The configuration file is loaded when Gleeter starts. Gleeter looks for the conf
 *   `[screen]`: This section configures the screen dimensions for displaying comics.
     *   `max_cols`: Specifies the maximum number of columns to use for displaying the comic.
     *   `max_lines`: Specifies the maximum number of lines to use for displaying the comic.
-*   `[metrics]`: This section configures the metrics endpoint.
+*   `[metrics]`: This section configures the [metrics](#prometheus-metrics) endpoint and it is meaningful only for the `serve` mode.
     *   `ignore_base_path`: If set to `true`, the `/metrics` endpoint will be accessible even when a base path is used. This allows accessing metrics at `/metrics` regardless of the configured base path.
     *   `username`: An optional username for basic authentication on the `/metrics` endpoint. If provided, a password must also be specified.
     *   `password`: An optional password for basic authentication on the `/metrics` endpoint. If provided, a username must also be specified.
@@ -121,6 +121,7 @@ To modify Gleeter's behavior, simply edit the configuration file and restart the
 When Gleeter is run in `serve` mode, it starts an HTTP server that exposes the following endpoints:
 
 *   `/`: Serves the latest comic.
+*   `/metrics/`: Serves the [Prometheus metrics](#prometheus-metrics) endpoint.
 *   `/latest`: Serves the latest comic (same as `/`).
 *   `/random`: Serves a random comic.
 *   `/id/<number>`: Serves the comic with the specified ID. Replace `<number>` with the desired comic ID.
@@ -128,6 +129,7 @@ When Gleeter is run in `serve` mode, it starts an HTTP server that exposes the f
 You can customize the base path for these endpoints by using the `<base_path>` argument. For example, if you start the server with `gleeter serve 8080 /comics`, the endpoints will be:
 
 *   `/comics/`
+*   `/comics/metrics`
 *   `/comics/latest`
 *   `/comics/random`
 *   `/comics/id/<number>`
