@@ -38,5 +38,7 @@ services:
       - target: 9999
         published: 8080
         protocol: tcp
+    environment:
+      GLEETER_DEBUG: "1"
     networks: [internal]
     command: ["serve", "9999", "comics"]
