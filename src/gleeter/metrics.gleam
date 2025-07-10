@@ -24,6 +24,8 @@ const memory_used = "gleeter:memory_used_bytes"
 
 const invalid_requests = "gleeter:http_invalid_requests_total"
 
+const jpeg_retried = "gleeter:jpeg_retried_total"
+
 type Memory {
   Processes(m: Int)
   ProcessesUsed(m: Int)
@@ -52,6 +54,7 @@ pub fn init() -> Nil {
     counter.new(invalid_requests, "Number of invalid HTTP requests")
   let assert Ok(_) =
     gauge.new(memory_used, "Memory used in bytes by the Erlang VM")
+  let assert Ok(_) = counter.new(jpeg_retried, "Number of JPEG retries")
 
   let buckets =
     set.from_list([
@@ -112,6 +115,11 @@ pub fn increment_cache_hits(method: String) -> Nil {
 pub fn increment_cache_miss(method: String) -> Nil {
   let labels = dict.from_list([#("method", method)])
   let assert Ok(_) = counter.increment(cache_miss, labels)
+  Nil
+}
+
+pub fn increment_jpeg_retries() -> Nil {
+  let assert Ok(_) = counter.increment(jpeg_retried, dict.new())
   Nil
 }
 

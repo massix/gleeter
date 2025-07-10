@@ -5,6 +5,7 @@ import gleam/io
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam/uri
 import gleeter/application_behavior
 import gleeter/cache
 import gleeter/config
@@ -12,6 +13,7 @@ import gleeter/debug.{debug_print}
 import gleeter/graphics
 import gleeter/png
 import gleeter/serve
+import gleeter/utils
 import gleeter/version
 import gleeter/xkcd
 
@@ -36,7 +38,10 @@ fn print_version() -> Result(Nil, Nil) {
 }
 
 // Get a comic from the cache or fetch it from the APIs and then store in the cache
-fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
+fn get_comic_from_cache(
+  cache: cache.Cache,
+  id: Int,
+) -> Result(cache.ComicWithData, Nil) {
   case cache.get_comic(cache, id) {
     option.Some(cd) -> Ok(cd)
     option.None -> {
@@ -71,26 +76,39 @@ fn get_comic(cache: cache.Cache, id: Int) -> Result(cache.ComicWithData, Nil) {
   }
 }
 
+fn get_comic(
+  in: PrintComic,
+  cache: cache.Cache,
+) -> Result(cache.ComicWithData, Nil) {
+  case in {
+    Latest -> get_comic_from_cache(cache, 0)
+    ID(id) -> get_comic_from_cache(cache, id)
+    Random -> {
+      use xkcd.Xkcd(number: highest, ..) <- result.try(
+        xkcd.get_latest() |> result.map_error(print_api_error),
+      )
+      let random_comic = int.random(highest)
+      use cache.ComicWithData(xkcd.Xkcd(img_url:, ..), ..) as r <- result.try(
+        get_comic_from_cache(cache, random_comic),
+      )
+      let uri_string = uri.to_string(img_url)
+      case utils.is_jpeg(uri_string) {
+        False -> Ok(r)
+        True -> {
+          debug_print("Skipping JPEG comic: " <> uri_string)
+          get_comic(in, cache)
+        }
+      }
+    }
+  }
+}
+
 fn print_comic(
   cache: cache.Cache,
   config: config.Configuration,
   in: PrintComic,
 ) -> Result(Nil, Nil) {
-  use cached_comic <- result.try(case in {
-    Latest -> get_comic(cache, 0)
-    Random -> {
-      use xkcd.Xkcd(number: highest, ..) <- result.try(
-        xkcd.get_latest() |> result.map_error(print_api_error),
-      )
-      let random_comic = case config.random_start {
-        option.Some(start) -> int.random(highest - start) + start
-        option.None -> int.random(highest)
-      }
-      get_comic(cache, random_comic)
-    }
-    ID(id) -> get_comic(cache, id)
-  })
-
+  use cached_comic <- result.try(get_comic(in, cache))
   let cache.ComicWithData(xkcd, body, raw_data) = cached_comic
   use image_size <- result.try(png.get_image_size(raw_data))
   let terminal_size = graphics.get_terminal_size()
