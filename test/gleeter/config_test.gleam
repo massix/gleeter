@@ -11,8 +11,15 @@ import startest/test_tree
 pub fn config_tests() -> test_tree.TestTree {
   describe("gleeter/config", [
     it("returns the path for the configuration file", fn() {
+      // Here we are also testing the different priority levels.
+      envoy.set("GLEETER_CONFIG_FILE", "/tmp/config.toml")
       envoy.set("HOME", "/home/user")
       envoy.set("XDG_CONFIG_HOME", "/home/user/.config")
+
+      get_configuration_file()
+      |> expect.to_equal("/tmp/config.toml")
+
+      envoy.unset("GLEETER_CONFIG_FILE")
       get_configuration_file()
       |> expect.to_equal("/home/user/.config/gleeter/config.toml")
 
