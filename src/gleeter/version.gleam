@@ -1,4 +1,4 @@
-pub const gleeter_version: String = "1.3.5"
+pub const gleeter_version: String = "1.3.6"
 
 pub const github_url: String = "https://github.com/massix/gleeter"
 
