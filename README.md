@@ -95,7 +95,14 @@ password = "your_password"
 
 ### Structure and Usage
 
-The configuration file is loaded when Gleeter starts. Gleeter looks for the configuration file in `$XDG_CONFIG_HOME/gleeter/config.toml` or `$HOME/.config/gleeter/config.toml`. If neither of these is found, it uses `./config.toml`.  The settings defined in the file are used to initialize the application and control its behavior.
+The configuration file is loaded when Gleeter starts. Gleeter checks for the configuration file in the following order:
+
+1.  `$GLEETER_CONFIG_FILE`: If this environment variable is set, Gleeter will attempt to load the configuration file from the path specified. This variable *must* point to a valid TOML file.
+2.  `$XDG_CONFIG_HOME/gleeter/config.toml`: If `$GLEETER_CONFIG_FILE` is not set, Gleeter will check for a configuration file in the `$XDG_CONFIG_HOME` directory, appending `/gleeter/config.toml` to the value of the variable.
+3.  `$HOME/.config/gleeter/config.toml`: If `$XDG_CONFIG_HOME` is not set, Gleeter will check for a configuration file in the `$HOME` directory, appending `/.config/gleeter/config.toml` to the value of the variable.
+4.  `./gleeter/config.toml`: If none of the above environment variables are set, Gleeter will attempt to load the configuration file from the `./gleeter/config.toml` path.
+
+The settings defined in the file are used to initialize the application and control its behavior.
 
 *   `random_start`: Specifies the starting comic number for the random comic selection. If not specified, a default value is used.
 
