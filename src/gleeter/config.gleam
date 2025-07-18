@@ -155,11 +155,18 @@ fn parse_alias(in: dict.Dict(String, tom.Toml)) -> option.Option(Alias) {
 
 pub fn get_configuration_file() -> ConfigFile {
   let assert Ok(path) =
-    envoy.get("XDG_CONFIG_HOME")
-    |> result.or(envoy.get("HOME") |> result.map(fn(s) { s <> "/.config" }))
-    |> result.or(Ok("."))
+    envoy.get("GLEETER_CONFIG_FILE")
+    |> result.or(
+      envoy.get("XDG_CONFIG_HOME")
+      |> result.map(fn(s) { s <> "/gleeter/config.toml" }),
+    )
+    |> result.or(
+      envoy.get("HOME")
+      |> result.map(fn(s) { s <> "/.config/gleeter/config.toml" }),
+    )
+    |> result.or(Ok("./gleeter/config.toml"))
 
-  path <> "/gleeter/config.toml"
+  path
 }
 
 pub fn parse(in: ConfigFile) -> Configuration {
