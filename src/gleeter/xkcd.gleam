@@ -94,7 +94,7 @@ pub fn api_decoder(in: String) -> Result(Xkcd, APIError) {
       safe_title:,
       transcript:,
       alternative_text:,
-      img_url: img_url,
+      img_url:,
       title:,
     ))
   }
@@ -143,14 +143,6 @@ pub fn get_comic(id: Int) -> Result(Xkcd, APIError) {
   )
 
   download(uri)
-}
-
-/// Returns a random comic
-pub fn get_random() -> Result(Xkcd, APIError) {
-  use Xkcd(number:, ..) <- result.try(get_latest())
-
-  let random_comic = int.random(number)
-  get_comic(random_comic)
 }
 
 pub fn get_image(in: Xkcd) -> Result(BitArray, APIError) {

@@ -18,6 +18,7 @@ import gleeter/debug.{debug_print}
 import gleeter/graphics
 import gleeter/metrics
 import gleeter/png
+import gleeter/utils
 import gleeter/version
 import gleeter/xkcd
 import messua
@@ -131,8 +132,10 @@ fn print_duration(start: birl.Time, end: birl.Time) -> Nil {
 fn handle_random(cache: cache.Cache) -> Result(cache.ComicWithData, Nil) {
   debug_print("Handling random")
   let start = birl.now()
-  use xkcd.Xkcd(number:, ..) <- result.try(xkcd.get_latest |> wrap_nil0())
-  let random = int.random(number + 1)
+  use xkcd.Xkcd(number: highest, ..) <- result.try(
+    xkcd.get_latest |> wrap_nil0(),
+  )
+  let random = int.random(highest)
 
   let result = case cache.get_comic(cache, random) {
     Some(cwd) -> {
@@ -142,19 +145,30 @@ fn handle_random(cache: cache.Cache) -> Result(cache.ComicWithData, Nil) {
     None -> {
       metrics.increment_cache_miss("random")
       debug_print("Not found in cache: " <> int.to_string(random))
-      use xkcd <- result.try(xkcd.get_comic |> wrap_nil1(random))
-      use body <- result.try(xkcd.get_image |> wrap_nil1(xkcd))
-      use result <- result.try(
-        graphics.to_kitty_protocol_string |> wrap_nil2(body, 4096),
+      use xkcd.Xkcd(img_url:, ..) as xkcd <- result.try(
+        xkcd.get_comic |> wrap_nil1(random),
       )
 
-      cache.insert_comic(cache, xkcd)
-      |> cache.insert_image(xkcd.number, result, body)
+      case utils.is_jpeg(uri.to_string(img_url)) {
+        True -> {
+          metrics.increment_jpeg_retries()
+          handle_random(cache)
+        }
+        False -> {
+          use body <- result.try(xkcd.get_image |> wrap_nil1(xkcd))
+          use result <- result.try(
+            graphics.to_kitty_protocol_string |> wrap_nil2(body, 4096),
+          )
 
-      debug_print("Found comic: " <> int.to_string(xkcd.number))
-      metrics.increment_cached_elements()
+          cache.insert_comic(cache, xkcd)
+          |> cache.insert_image(xkcd.number, result, body)
 
-      Ok(cache.ComicWithData(xkcd, result, body))
+          debug_print("Found comic: " <> int.to_string(xkcd.number))
+          metrics.increment_cached_elements()
+
+          Ok(cache.ComicWithData(xkcd, result, body))
+        }
+      }
     }
   }
 

@@ -55,7 +55,7 @@ Gleeter understands the following commands:
 *   `help`: Prints help information, this is also the default behavior if no arguments are provided.
 *   `version`: Prints the application version.
 *   `latest`: Fetches the latest comic from XKCD and displays it in the terminal.
-*   `random`: Fetches a random comic from XKCD. **Warning**: Some very old comics (IDs ranging from 1 to 120 and possibly more) might not display correctly due to unsupported PNG compression.
+*   `random`: Fetches a random comic from XKCD and displays it in the terminal. Gleeter will automatically skip the comics using an unsupported format (very old comics were using the JPG extension), so you should always get a valid comic. This is a technical limitation of the Terminal Graphics Protocol.
 *   `id <number>`: Fetches the comic with the specified ID and displays it in the terminal. Replace `<number>` with the desired comic ID.
 *   `serve <port> <base_path>`: Starts a web server to serve the comics. `<port>` is optional and defaults to 8080. `<base_path>` is also optional and defaults to "". For example, `gleeter serve 3000 /comics` will start the server on port 3000 and serve the comics under the `/comics` path.
 
@@ -190,6 +190,8 @@ Example response:
 
 This endpoint can be useful for monitoring the health and performance of the server.
 
+The automatic skipping of unsupported images in random mode also applies when using the `/random` endpoint in serve mode, ensuring that only valid comics are served.
+
 #### Prometheus Metrics
 
 Gleeter exposes Prometheus metrics that can be used to monitor the server's performance and health. These metrics are available at the `/<base_path>/metrics` and **optionally** also at the `/metrics` path (the behavior is configurable via the configuration file).
@@ -205,6 +207,7 @@ The following metrics are exposed:
 *   `gleeter:cached_elements_total`: A counter of the total number of elements currently stored in the cache.
 *   `gleeter:memory_used_bytes`: A gauge of the memory used by the Erlang VM in bytes, with labels for different memory slices (e.g., "system", "processes", "ets", "code", "binary", "atom").
 *   `gleeter:http_invalid_requests_total`: A counter of the total number of invalid HTTP requests.
+*   `gleeter:jpeg_retried_total`: A counter of the total number of times the server had to retry because it was getting a JPEG image.
 
 These metrics can be used to create dashboards and alerts to monitor the Gleeter server's performance.
 
