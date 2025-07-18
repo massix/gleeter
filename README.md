@@ -272,6 +272,47 @@ For example, to fetch a random comic using the latest version of Gleeter, you wo
 docker run --rm massix86/gleeter:latest -- random
 ```
 
+To use a configuration file with the Docker image, follow these steps:
+
+1.  Create a `config.toml` file with your desired configuration settings. For example:
+
+    ```toml
+    random_start = 100
+
+    [screen]
+    max_cols = 100
+    max_lines = 30
+
+    [[alias]]
+    name = "bobbytables"
+    type = "id"
+    id = 987
+
+    [[alias]]
+    name = "rnd"
+    type = "random"
+
+    [[alias]]
+    name = "l"
+    type = "latest"
+    ```
+
+2.  Run the Docker image with a bind mount to map the `config.toml` file from your host machine into the container, and set the `GLEETER_CONFIG_FILE` environment variable to point to the mounted file:
+
+    ```bash
+    docker run --rm -v $(pwd)/config.toml:/app/config.toml -e GLEETER_CONFIG_FILE=/app/config.toml massix86/gleeter:latest -- bobbytables
+    ```
+
+    This command does the following:
+
+    *   `--rm`: Automatically removes the container when it exits.
+    *   `-v $(pwd)/config.toml:/app/config.toml`: Creates a bind mount, mapping the `config.toml` file in the current directory (`$(pwd)`) on your host machine to the `/app/config.toml` path inside the container.
+    *   `-e GLEETER_CONFIG_FILE=/app/config.toml`: Sets the `GLEETER_CONFIG_FILE` environment variable inside the container to `/app/config.toml`. This tells Gleeter where to find the configuration file.
+    *   `massix86/gleeter:latest`: Specifies the Docker image to use.
+    *   `-- bobbytables`: Tells Gleeter to fetch the comic pointed by the bobbytables alias.
+
+Make sure that the `config.toml` file exists in the current directory when you run the Docker command.
+
 ### Other systems
 
 To install on other systems, ensure you have Gleam and Erlang installed. Then, you can build and run the project using Gleam's build tools. Refer to the Gleam documentation for specific instructions.
