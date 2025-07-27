@@ -184,6 +184,7 @@ fn print_help(aliases: List(config.Alias)) -> Result(Nil, Nil) {
     "                            default port: 8080, default base_path: \"/\"",
     "  id [id]: print comic with id", "  latest: print latest comic",
     "  random: print random comic",
+    "  clearcache: clear the cache without printing any comic",
   ]
 
   let aliases =
