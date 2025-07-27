@@ -1,6 +1,15 @@
 # Gleeter
+Stop interrupting your workflow for comic relief! Gleeter delivers the **exact** XKCD strip you need, *right in your terminal*. Need to gently nudge a colleague about [off-by-one errors](https://xkcd.com/3062/)? Or perhaps illustrate the superpowers of [regular expressions](https://xkcd.com/208/)? Maybe teach a colleague why it is important to [sanitize your database inputs](https://xkcd.com/327/)? Gleeter's got you covered. Install now, and weaponize your command line with the power of XKCD.
 
-Very simple and straightforward software to fetch comics from [xkcd](https://xkcd.com) and display them in the terminal.
+This is a very simple and straightforward software to fetch and display comics from [xkcd](https://xkcd.com) right in the terminal.
+
+Supported commands are:
+*  `latest`: to show the latest comic
+*  `random`: to show a random comic
+*  `id <number>`: to show the comic with id `<number>`. Replace `<number>` with the desired comic ID.
+*  `serve <port> <path>` to create a [web server](#serve-mode-details) which you can query with curl!
+* You can also define aliases for the above commands (e.g. `bobbytables`) and fetch very specific comics using the [configuration file](#configuration-file).
+See the [How to use](#how-to-use) section for more information and details about the commands.
 
 For this to work, you need a terminal which understands the [Terminal Graphics Protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/).
 
@@ -13,13 +22,10 @@ Gleeter is known to work well with the following terminals:
 
 ## Test it out now
 
-If you are not interested in knowing the insights of the project or to develop it, you can start using
-it without installing anything: simply
+You can start using it without installing anything: simply
 `curl -H "X-TERMINAL-ROWS: $(tput lines)" -H "X-TERMINAL-COLUMNS: $(tput cols)" https://xkcd.massi.rocks/comics/latest`
 
-Replace `latest` with `random` or `id/<comic_id>` to change the behavior!
-
-The service is not guaranteed.
+Replace `latest` with `random` or `id/<comic_id>` to change the behavior, you can also check [this file](./docker-digitalocean/config.toml) for a list of available aliases!
 
 ## Screenshots
 
@@ -54,10 +60,12 @@ Gleeter understands the following commands:
 
 *   `help`: Prints help information, this is also the default behavior if no arguments are provided.
 *   `version`: Prints the application version.
-*   `latest`: Fetches the latest comic from XKCD and displays it in the terminal.
-*   `random`: Fetches a random comic from XKCD and displays it in the terminal. Gleeter will automatically skip the comics using an unsupported format (very old comics were using the JPG extension), so you should always get a valid comic. This is a technical limitation of the Terminal Graphics Protocol.
-*   `id <number>`: Fetches the comic with the specified ID and displays it in the terminal. Replace `<number>` with the desired comic ID.
+*   `latest`: Fetches the latest comic from XKCD and displays it in the terminal. Use the `--no-cache` or `-n` flag to bypass the cache and fetch the comic directly from XKCD.
+*   `random`: Fetches a random comic from XKCD and displays it in the terminal. Gleeter will automatically skip the comics using an unsupported format (very old comics were using the JPG extension), so you should always get a valid comic. This is a technical limitation of the Terminal Graphics Protocol. Use the `--no-cache` or `-n` flag to bypass the cache and fetch the comic directly from XKCD. **Warning**: the `-n` (or `--no-cache` flag) **must** come before the command for it to work (e.g.: `-n random` will work, while `random -n` will not work); this behavior will be fixed in a future version.
+*   `id <number>`: Fetches the comic with the specified ID and displays it in the terminal. Replace `<number>` with the desired comic ID. Use the `--no-cache` or `-n` flag to bypass the cache and fetch the comic directly from XKCD. **Warning**: the `-n` (or `--no-cache` flag) **must** come before the command for it to work (e.g.: `-n id 998` will work, while `id 998 -n` will not work); this behavior will be fixed in a future version.
+
 *   `serve <port> <base_path>`: Starts a web server to serve the comics. `<port>` is optional and defaults to 8080. `<base_path>` is also optional and defaults to "". For example, `gleeter serve 3000 /comics` will start the server on port 3000 and serve the comics under the `/comics` path.
+*   `clearcache`: Clears the local cache of comics.
 
 ## Configuration File
 
@@ -328,4 +336,3 @@ Gleeter is licensed under the MIT License. See [LICENSE.txt](LICENSE.txt) for de
 All xkcd comics displayed by Gleeter are licensed under a Creative Commons license. The intellectual property of xkcd.com belongs to Randall Munroe. Contact details can be found on the xkcd.com website.
 
 I am in no way responsible for the content of the xkcd comics. All attributions and inquiries should be directed to Randall Munroe.
-

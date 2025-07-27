@@ -65,6 +65,12 @@ const count_elements_query = "
   select count(1) from comics
 "
 
+const clear_cache_query = "
+  delete from images;
+  delete from comics;
+  vacuum main;
+"
+
 fn convert_sqlight_error(in: sqlight.Error) -> String {
   let sqlight.SqlightError(_, desc, code) = in
   "sqlight error: "
@@ -77,14 +83,14 @@ fn convert_sqlight_error(in: sqlight.Error) -> String {
   }
 }
 
-fn with_cache_insert(cache: Cache, f: fn(Connection) -> Cache) -> Cache {
+fn with_cache_exec(cache: Cache, f: fn(Connection) -> Cache) -> Cache {
   case cache {
     Faulty(_) -> cache
     Cache(db:, ..) -> f(db)
   }
 }
 
-fn with_cache_select(cache: Cache, f: fn(Connection) -> Option(a)) -> Option(a) {
+fn with_cache_query(cache: Cache, f: fn(Connection) -> Option(a)) -> Option(a) {
   case cache {
     Faulty(_) -> option.None
     Cache(db:, ..) -> f(db)
@@ -129,7 +135,7 @@ pub fn insert_image(
   raw_data: BitArray,
 ) -> Cache {
   debug_print("Inserting image for comic " <> int.to_string(comic_number))
-  use db <- with_cache_insert(cache)
+  use db <- with_cache_exec(cache)
   let insert_result =
     sqlight.query(
       insert_table_image_query,
@@ -152,7 +158,7 @@ pub fn insert_image(
 
 pub fn insert_comic(cache: Cache, comic comic: xkcd.Xkcd) -> Cache {
   debug_print("Inserting comic " <> int.to_string(comic.number))
-  use db <- with_cache_insert(cache)
+  use db <- with_cache_exec(cache)
   let xkcd.Xkcd(
     number:,
     publication_date:,
@@ -196,7 +202,7 @@ pub fn insert_comic(cache: Cache, comic comic: xkcd.Xkcd) -> Cache {
 }
 
 pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
-  use db <- with_cache_select(cache)
+  use db <- with_cache_query(cache)
   debug_print("Getting comic " <> int.to_string(number))
 
   let decoder = {
@@ -243,7 +249,7 @@ pub fn get_comic(cache: Cache, id number: Int) -> Option(ComicWithData) {
 }
 
 pub fn count_elements(cache: Cache) -> option.Option(Int) {
-  use db <- with_cache_select(cache)
+  use db <- with_cache_query(cache)
   debug_print("Counting elements")
 
   let decoder = {
@@ -262,4 +268,14 @@ pub fn is_cache_loaded(cache: Cache) -> Bool {
     Faulty(_) -> False
     Cache(_, _, _) -> True
   }
+}
+
+pub fn clear(cache: Cache) -> Cache {
+  use db <- with_cache_exec(cache)
+  case sqlight.exec(clear_cache_query, db) {
+    Ok(_) -> debug_print("Cleared cache")
+    Error(e) -> debug_print(convert_sqlight_error(e))
+  }
+
+  cache
 }
