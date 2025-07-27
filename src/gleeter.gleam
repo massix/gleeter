@@ -31,6 +31,14 @@ fn print_api_error(in: xkcd.APIError) -> Nil {
   }
 }
 
+fn print_graphics_error(in: graphics.GraphicsError) -> Nil {
+  case in {
+    graphics.ChunkSizeTooBig -> io.println("Chunk size is too big!")
+    graphics.ChunkNotMultipleOf4 ->
+      io.println("Chunk size is not a multiple of 4!")
+  }
+}
+
 fn print_version() -> Result(Nil, Nil) {
   Ok(io.println(
     "gleeter v" <> version.gleeter_version <> " " <> version.github_url,
@@ -45,71 +53,85 @@ fn get_comic_from_cache(
   case cache.get_comic(cache, id) {
     option.Some(cd) -> Ok(cd)
     option.None -> {
-      let xkcd = case id {
-        0 -> xkcd.get_latest()
-        x -> xkcd.get_comic(x)
-      }
-      use xkcd <- result.try(
-        xkcd
-        |> result.map_error(print_api_error),
-      )
-      use raw_data <- result.try(
-        xkcd.get_image(xkcd) |> result.map_error(print_api_error),
-      )
-
-      use body <- result.try(
-        graphics.to_kitty_protocol_string(raw_data, 4096)
-        |> result.map_error(fn(e) {
-          case e {
-            graphics.ChunkSizeTooBig -> io.println("Chunk size is too big!")
-            graphics.ChunkNotMultipleOf4 ->
-              io.println("Chunk size is not a multiple of 4!")
-          }
-        }),
+      use cache.ComicWithData(xkcd, body, raw_data) as cmd <- result.try(
+        get_comic_without_cache(id),
       )
 
       cache.insert_comic(cache, xkcd)
       |> cache.insert_image(xkcd.number, body, raw_data)
 
-      Ok(cache.ComicWithData(xkcd, body, raw_data))
+      Ok(cmd)
     }
   }
 }
 
+// Get a comic without using the cache
+fn get_comic_without_cache(id: Int) -> Result(cache.ComicWithData, Nil) {
+  let xkcd = case id {
+    0 -> xkcd.get_latest()
+    x -> xkcd.get_comic(x)
+  }
+  use xkcd <- result.try(
+    xkcd
+    |> result.map_error(print_api_error),
+  )
+  use raw_data <- result.try(
+    xkcd.get_image(xkcd) |> result.map_error(print_api_error),
+  )
+
+  use body <- result.try(
+    graphics.to_kitty_protocol_string(raw_data, 4096)
+    |> result.map_error(print_graphics_error),
+  )
+
+  Ok(cache.ComicWithData(xkcd, body, raw_data))
+}
+
+// Generic get comic function, the request is then routed to the right underneath function
 fn get_comic(
   in: PrintComic,
   cache: cache.Cache,
+  ignore_cache: Bool,
 ) -> Result(cache.ComicWithData, Nil) {
-  case in {
-    Latest -> get_comic_from_cache(cache, 0)
-    ID(id) -> get_comic_from_cache(cache, id)
-    Random -> {
+  case in, ignore_cache {
+    Latest, _ -> get_comic_from_cache(cache, 0)
+    ID(id), False -> get_comic_from_cache(cache, id)
+    ID(id), True -> get_comic_without_cache(id)
+    Random, ignore_cache -> {
       use xkcd.Xkcd(number: highest, ..) <- result.try(
         xkcd.get_latest() |> result.map_error(print_api_error),
       )
       let random_comic = int.random(highest)
       use cache.ComicWithData(xkcd.Xkcd(img_url:, ..), ..) as r <- result.try(
-        get_comic_from_cache(cache, random_comic),
+        case ignore_cache {
+          False -> get_comic_from_cache(cache, random_comic)
+          True -> get_comic_without_cache(random_comic)
+        },
       )
       let uri_string = uri.to_string(img_url)
       case utils.is_jpeg(uri_string) {
         False -> Ok(r)
         True -> {
           debug_print("Skipping JPEG comic: " <> uri_string)
-          get_comic(in, cache)
+          get_comic(in, cache, ignore_cache)
         }
       }
     }
   }
 }
 
+// Prints a comic to the stdout
 fn print_comic(
   cache: cache.Cache,
   config: config.Configuration,
   in: PrintComic,
+  ignore_cache: Bool,
 ) -> Result(Nil, Nil) {
-  use cached_comic <- result.try(get_comic(in, cache))
-  let cache.ComicWithData(xkcd, body, raw_data) = cached_comic
+  use cache.ComicWithData(xkcd, body, raw_data) <- result.try(get_comic(
+    in,
+    cache,
+    ignore_cache,
+  ))
   use image_size <- result.try(png.get_image_size(raw_data))
   let terminal_size = graphics.get_terminal_size()
 
@@ -190,15 +212,19 @@ pub fn main() -> Result(Nil, Nil) {
 
   let r = case application_behavior.get_application_behavior(configuration) {
     application_behavior.PrintVersion -> print_version()
-    application_behavior.LatestComic ->
-      print_comic(cache, configuration, Latest)
-    application_behavior.RandomComic ->
-      print_comic(cache, configuration, Random)
-    application_behavior.WithIDComic(id) ->
-      print_comic(cache, configuration, ID(id))
+    application_behavior.LatestComic(ignore_cache) ->
+      print_comic(cache, configuration, Latest, ignore_cache)
+    application_behavior.RandomComic(ignore_cache) ->
+      print_comic(cache, configuration, Random, ignore_cache)
+    application_behavior.WithIDComic(id, ignore_cache) ->
+      print_comic(cache, configuration, ID(id), ignore_cache)
     application_behavior.Serve(p, b) ->
       serve.serve(p, b, cache, configuration) |> Ok
     application_behavior.Help -> print_help(configuration.aliases)
+    application_behavior.ClearCache -> {
+      cache.clear(cache)
+      io.println("Cache cleared") |> Ok
+    }
   }
   let end = birl.now()
 

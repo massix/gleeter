@@ -164,5 +164,14 @@ pub fn cache_tests() {
     describe("image insert", cache_insert_image_tests(valid_cache)),
     describe("get comic", cache_get_comic_tests(valid_cache)),
     describe("count elements", cache_count_elements_tests(valid_cache)),
+    describe("clear cache", [
+      it("can clear the cache", fn() {
+        valid_cache
+        |> cache.clear
+        |> cache.count_elements
+        |> expect.to_be_some
+        |> expect.to_equal(0)
+      }),
+    ]),
   ])
 }
