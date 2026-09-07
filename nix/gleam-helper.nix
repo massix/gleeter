@@ -19,7 +19,10 @@
         pname = "${pname}-gleam-packages";
         version = "${version}";
 
-        nativeBuildInputs = with pkgs; [ gleam ];
+        nativeBuildInputs = [
+          gleam
+          pkgs.cacert
+        ];
         src = builtins.filterSource (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) src;
 
         # This is a fixed-output derivation that just stages downloaded package
@@ -30,6 +33,11 @@
 
         buildPhase = ''
           export HOME=$PWD
+          # Gleam 1.18 builds its HTTP client with rustls-platform-verifier,
+          # which on Linux loads CA certificates from the system trust store.
+          # The nix sandbox has no such store, so point it at the nixpkgs CA
+          # bundle instead (honoured by rustls-native-certs via openssl-probe).
+          export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
           gleam deps download
           # Canonicalize packages.toml: gleam writes its entries in a
           # non-deterministic order, which would make the fixed-output hash of
@@ -57,7 +65,7 @@
     stdenv.mkDerivation ({
       inherit pname version src;
 
-      nativeBuildInputs = with pkgs; [
+      nativeBuildInputs = [
         gleam
         (pkgs.beam27Packages.rebar3WithPlugins {
           plugins = rebar3Plugins;
