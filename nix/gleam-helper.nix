@@ -22,13 +22,24 @@
         nativeBuildInputs = with pkgs; [ gleam ];
         src = builtins.filterSource (path: _: builtins.elem (baseNameOf path) [ "manifest.toml" "gleam.toml" ]) src;
 
+        # This is a fixed-output derivation that just stages downloaded package
+        # sources for later use, so it must not be run through the fixup phase.
+        # Doing so would patch script interpreters (e.g. quic's quic_call.sh)
+        # with store paths, which is not allowed in a fixed-output derivation.
+        dontFixup = true;
+
         buildPhase = ''
           export HOME=$PWD
           gleam deps download
-          grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
-          echo -e "[packages]\n" > build/packages/packages.toml
-          cat packages.toml >> build/packages/packages.toml
-          rm packages.toml
+          # Canonicalize packages.toml: gleam writes its entries in a
+          # non-deterministic order, which would make the fixed-output hash of
+          # this derivation unstable. Sort the entries within each table while
+          # preserving the table structure so the file stays valid TOML.
+          awk '
+            /^\[/ { sec++; print sprintf("%03d0", sec) "|" $0; next }
+            NF    { print sprintf("%03d1", sec) "|" $0 }
+          ' build/packages/packages.toml | sort | sed 's/^[0-9][0-9][0-9][01]|//' > packages.toml.canon
+          mv packages.toml.canon build/packages/packages.toml
         '';
 
         installPhase = ''
@@ -48,13 +59,13 @@
 
       nativeBuildInputs = with pkgs; [
         gleam
-        (rebar3WithPlugins {
+        (pkgs.beam27Packages.rebar3WithPlugins {
           plugins = rebar3Plugins;
         })
         gleamPackages
       ] ++ nativeBuildInputs;
 
-      propagatedBuildInputs = [ pkgs.erlang_27 ] ++ propagatedBuildInputs;
+      propagatedBuildInputs = [ pkgs.beam27Packages.erlang ] ++ propagatedBuildInputs;
 
       configurePhase = ''
         cp --recursive ${gleamPackages}/build .

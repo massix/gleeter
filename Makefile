@@ -55,10 +55,7 @@ precalc-packages:
 	if test -d build; then rm -fr build; fi
 	if test -d out; then rm -fr out; fi
 	gleam deps download
-	grep -v '\[packages\]' build/packages/packages.toml | sort > packages.toml
-	echo -e "[packages]\n" > build/packages/packages.toml
-	cat packages.toml >> build/packages/packages.toml
-	rm packages.toml
+	awk '/^\[/ { sec++; print sprintf("%03d0", sec) "|" $$0; next } NF { print sprintf("%03d1", sec) "|" $$0 }' build/packages/packages.toml | sort | sed 's/^[0-9][0-9][0-9][01]|//' > packages.toml.canon && mv packages.toml.canon build/packages/packages.toml
 	mkdir out
 	cp --recursive build out/
 	nix-hash --type sha256 --sri out/ > out.hash

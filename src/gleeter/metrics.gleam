@@ -137,11 +137,12 @@ pub fn update_memory() -> Nil {
       Total(m) -> #("total", m)
     }
 
-    gauge.observe(
-      memory_used,
-      dict.from_list([#("slice", label)]),
-      number.integer(memory),
-    )
+    let _ =
+      gauge.observe(
+        memory_used,
+        dict.from_list([#("slice", label)]),
+        number.integer(memory),
+      )
   })
 
   Nil

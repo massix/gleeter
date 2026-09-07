@@ -48,7 +48,6 @@ pub fn api_decoder(in: String) -> Result(Xkcd, APIError) {
       json.UnexpectedEndOfInput -> DecodeError("Unexpected end of input")
       json.UnexpectedByte(b) -> DecodeError("Unexpected byte: " <> b)
       json.UnexpectedSequence(s) -> DecodeError("Unexpected sequence: " <> s)
-      json.UnexpectedFormat(_) -> DecodeError("Unexpected format")
       json.UnableToDecode(_) -> DecodeError("Unable to decode")
     }
   }
