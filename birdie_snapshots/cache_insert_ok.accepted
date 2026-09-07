@@ -1,8 +1,8 @@
 ---
-version: 1.2.7
+version: 1.5.5
 title: cache_insert_ok
-file: ./test/cache_test.gleam
-test_name: cache_insert_tests
+file: ./test/gleeter/cache_test.gleam
+test_name: cache_insert_comic_test
 ---
 Cache(
   ":memory:",

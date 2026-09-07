@@ -44,7 +44,7 @@ pub fn to_kitty_protocol_string(
   chunk_size: Int,
 ) -> Result(String, GraphicsError) {
   use chunks <- result.try(image_to_chunks(data, chunk_size))
-  let controls = chunks_to_kitty_controls(chunks, chunk_size, [])
+  let controls = chunks_to_kitty_controls(chunks, [])
 
   // The first control *must* contain the graphics type for Kitty
   let controls =
@@ -65,7 +65,6 @@ pub fn to_kitty_protocol_string(
 // -- Helper function for to_kitty_protocol_string
 pub fn chunks_to_kitty_controls(
   chunks: List(Chunk),
-  chunk_size: Int,
   acc: List(KittyControl),
 ) -> List(KittyControl) {
   case chunks {
@@ -80,7 +79,6 @@ pub fn chunks_to_kitty_controls(
 
       chunks_to_kitty_controls(
         rest,
-        chunk_size,
         list.append(acc, [KittyControl(option, data)]),
       )
     }

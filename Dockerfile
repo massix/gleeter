@@ -1,11 +1,16 @@
 FROM alpine:3 AS builder
 
+# This project targets the same toolchain as the nix flake (Gleam 1.18.x).
+# The dependency set (e.g. sqlight) requires Gleam >= 1.15.0.
+ARG GLEAM_VERSION=1.18.1
+
 RUN echo "http://dl-cdn.alpinelinux.org/alpine/edge/testing" > /etc/apk/repositories && \
   echo "http://dl-cdn.alpinelinux.org/alpine/edge/main" >> /etc/apk/repositories && \
   echo "http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories && \
   apk update && \
   apk add openssl-dev gcc musl-dev gleam rebar3 && \
   apk add --force erlang27 erlang27-dev && \
+  test "$(gleam --version | awk '{print $2}')" = "$GLEAM_VERSION" && \
   mkdir /app
 
 WORKDIR /app

@@ -1,14 +1,14 @@
 ---
-version: 1.2.7
+version: 1.5.5
 title: cache_get_comic_ok
-file: ./test/cache_test.gleam
-test_name: cache_get_comic_tests
+file: ./test/gleeter/cache_test.gleam
+test_name: cache_get_comic_ok_test
 ---
 ComicWithData(
   Xkcd(
     Time(
-      1746894863000000,
-      0,
+      Timestamp(1746894863, 0),
+      Duration(0, 0),
       None,
       None,
     ),

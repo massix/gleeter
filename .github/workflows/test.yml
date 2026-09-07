@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ matrix.os_version }}
     strategy:
       matrix:
-        os_version: [ubuntu-24.04, macos-15, ubuntu-24.04-arm]
+        os_version: [ubuntu-24.04, macos-26, ubuntu-24.04-arm]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -43,12 +43,16 @@ jobs:
     runs-on: ${{ matrix.os_version }}
     strategy:
       matrix:
-        os_version: [ubuntu-24.04, macos-15, ubuntu-24.04-arm]
+        os_version: [ubuntu-24.04, macos-26, ubuntu-24.04-arm]
       fail-fast: true
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v30
       - uses: nicknovitski/nix-develop@v1
+      - name: Check Gleam version
+        run: |
+          test "$(gleam --version | awk '{print $2}')" = "1.18.1" \
+            || { echo "Unexpected Gleam version (expected 1.18.1)" >&2; exit 1; }
       - run: make test
     if: ${{ inputs.run_tests || true }}
   check-format:

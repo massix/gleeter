@@ -9,8 +9,8 @@
       let
         pkgs = import nixpkgs { inherit system; };
         inherit (pkgs) mkShell;
-        gleamPackagesHash = "sha256-qXxGdvZ3FBmszKj+pHv4WI5NANHjLedPqInJlhFba3w=";
-        version = "1.3.8";
+        gleamPackagesHash = "sha256-FTPZ+ZophA0ZdnlqGx0fkU7BwxFayQX33wek4wxMD98=";
+        version = "1.4.0";
         pname = "gleeter";
         src = ./.;
         gleam-helper = pkgs.callPackage ./nix/gleam-helper.nix { };
@@ -18,7 +18,7 @@
       {
         devShells.default = mkShell {
           packages = with pkgs; [
-            erlang_27
+            beam27Packages.erlang
             beam27Packages.rebar3
             gleam
             sqlite
@@ -28,7 +28,7 @@
         packages = {
           gleeter = gleam-helper.buildGleamPackage {
             inherit pname version src gleamPackagesHash;
-            rebar3Plugins = with pkgs.beamPackages; [ ex_doc pc hex ];
+            rebar3Plugins = with pkgs.beam27Packages; [ ex_doc pc hex ];
 
             doCheck = true;
 
@@ -48,7 +48,7 @@
               mkdir -p $out/bin/
               cp -r build/erlang-shipment/* $out/opt/gleeter/
               substituteInPlace $out/opt/gleeter/entrypoint.sh \
-                --replace erl ${pkgs.erlang_27}/bin/erl
+                --replace erl ${pkgs.beam27Packages.erlang}/bin/erl
               cp scripts/gleeter $out/bin/gleeter
               substituteInPlace $out/bin/gleeter \
                 --replace /opt/gleeter $out/opt/gleeter

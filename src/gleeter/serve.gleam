@@ -22,10 +22,10 @@ import gleeter/utils
 import gleeter/version
 import gleeter/xkcd
 import messua
-import messua/err
+import messua/fail
 import messua/handle
-import messua/ok
-import messua/rr
+import messua/minc
+import messua/mout
 import themis
 
 type ApplicationContext {
@@ -75,7 +75,7 @@ fn encode_health_check(health_check: HealthCheck) -> json.Json {
 fn build_health_check(ctx: ApplicationContext) -> HealthCheck {
   let cache_status = cache.is_cache_loaded(ctx.cache)
   let cache_elements = cache.count_elements(ctx.cache) |> option.unwrap(0)
-  let processed_queries = process.call(ctx.actor, Get, 50)
+  let processed_queries = process.call(ctx.actor, 50, Get)
   let current_version = version.user_agent
   let loaded_aliases = list.map(ctx.cfg.aliases, fn(x) { x.name })
 
@@ -94,20 +94,20 @@ type ActorMessage {
 }
 
 fn process_request(
-  message: ActorMessage,
   state: Int,
-) -> actor.Next(ActorMessage, Int) {
+  message: ActorMessage,
+) -> actor.Next(Int, ActorMessage) {
   case message {
     Inc -> actor.continue(state + 1)
     Get(s) -> {
-      actor.send(s, state)
+      process.send(s, state)
       actor.continue(state)
     }
   }
 }
 
 type StatefulRequest =
-  rr.MRequest(ApplicationContext)
+  minc.Incoming(ApplicationContext)
 
 fn wrap_nil0(f: fn() -> Result(x, y)) -> Result(x, Nil) {
   f() |> result.map_error(fn(_) { Nil })
@@ -338,15 +338,16 @@ fn handle_metrics(
   }
 }
 
-fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
+fn handler(base_path: String) -> fn(StatefulRequest) -> mout.Outgoing {
   io.println("Serving at base path: " <> base_path)
   let base_path = uri.path_segments(base_path)
 
-  fn(s: StatefulRequest) -> rr.MResponse {
-    let ApplicationContext(cache, config, actor) as context = rr.state(s)
+  fn(s: StatefulRequest) -> mout.Outgoing {
+    let assert Ok(context) = minc.get_state(s)
+    let ApplicationContext(cache, config, actor) = context
     let path_segments =
       base_path
-      |> strip_base_path(handle.path_segments(s), config)
+      |> strip_base_path(uri.path_segments(handle.path(s)), config)
 
     use terminal_columns <- handle.require_valid_optional_header(
       s,
@@ -443,28 +444,30 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> rr.MResponse {
 
     case result {
       Json(data, code) -> {
-        err.new(code)
-        |> err.with_header("Content-Type", "application/json")
-        |> err.with_header("X-Server-Version", version.gleeter_version)
-        |> err.with_message([json.to_string_tree(data) |> string_tree.to_string])
-        |> err.to_response(fn(_) { Nil })
+        fail.new()
+        |> fail.code(code)
+        |> fail.header("Content-Type", "application/json")
+        |> fail.header("X-Server-Version", version.gleeter_version)
+        |> fail.message(json.to_string_tree(data) |> string_tree.to_string)
+        |> Error()
       }
       Comic(cd) -> {
         process.send(actor, Inc)
 
-        ok.ok()
-        |> ok.with_header("Content-Type", "text/plain")
-        |> ok.with_header("X-Server-Version", version.gleeter_version)
-        |> ok.with_binary_body(cd |> to_printable(terminal_size))
+        mout.ok()
+        |> mout.with_header("Content-Type", "text/plain")
+        |> mout.with_header("X-Server-Version", version.gleeter_version)
+        |> mout.with_body(
+          cd |> to_printable(terminal_size) |> bytes_tree.to_bit_array,
+        )
       }
       Prometheus(result) -> {
-        ok.ok()
-        |> ok.with_header("Content-Type", "text/plain")
-        |> ok.with_header("X-Server-Version", version.gleeter_version)
-        |> ok.with_text_body(result)
+        mout.ok()
+        |> mout.with_header("Content-Type", "text/plain")
+        |> mout.with_header("X-Server-Version", version.gleeter_version)
+        |> mout.with_string_body(result)
       }
     }
-    |> Ok
   }
 }
 
@@ -475,11 +478,14 @@ pub fn serve(
   config: config.Configuration,
 ) -> Nil {
   io.println("Serving on port " <> int.to_string(port))
-  let assert Ok(actor) = actor.start(0, process_request)
+  let assert Ok(actor.Started(_, actor)) =
+    actor.new(0)
+    |> actor.on_message(process_request)
+    |> actor.start
   metrics.init()
 
   messua.default()
-  |> messua.with_http(port)
+  |> messua.with_http_port(port)
   |> messua.with_binding("0.0.0.0")
   |> messua.with_state(ApplicationContext(cache, config, actor))
   |> messua.start(handler(base_path))
