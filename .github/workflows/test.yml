@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ matrix.os_version }}
     strategy:
       matrix:
-        os_version: [ubuntu-24.04, macos-15, ubuntu-24.04-arm]
+        os_version: [ubuntu-24.04, macos-26, ubuntu-24.04-arm]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
