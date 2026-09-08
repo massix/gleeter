@@ -71,6 +71,7 @@
           plugins = rebar3Plugins;
         })
         gleamPackages
+        pkgs.installShellFiles
       ] ++ nativeBuildInputs;
 
       propagatedBuildInputs = [ pkgs.beam27Packages.erlang ] ++ propagatedBuildInputs;

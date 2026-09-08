@@ -58,6 +58,7 @@
               cp scripts/gleeter $out/bin/gleeter
               substituteInPlace $out/bin/gleeter \
                 --replace /opt/gleeter $out/opt/gleeter
+              installShellCompletion scripts/gleeter.{bash,zsh,fish}
               runHook postInstallHook
             '';
 
