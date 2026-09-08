@@ -1,13 +1,19 @@
 {
   description = "Fetch and display XKCD comics directly in the terminal";
 
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-26.05";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-darwin" "aarch64-linux" ] (system:
+  outputs = { self, nixpkgs, nixpkgs-stable, flake-utils, ... }:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "x86_64-darwin" "aarch64-darwin" "aarch64-linux" ] (system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs =
+          if system == "x86_64-darwin" then
+            import nixpkgs-stable { inherit system; }
+          else import nixpkgs { inherit system; };
         inherit (pkgs) mkShell;
         gleamPackagesHash = "sha256-FTPZ+ZophA0ZdnlqGx0fkU7BwxFayQX33wek4wxMD98=";
         version = "1.4.0";
