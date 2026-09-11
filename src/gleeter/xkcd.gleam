@@ -1,7 +1,6 @@
 import birl
 import gleam/bytes_tree
 import gleam/dynamic/decode
-import gleam/hackney
 import gleam/http/request
 import gleam/http/response
 import gleam/int
@@ -9,6 +8,7 @@ import gleam/json
 import gleam/option
 import gleam/result
 import gleam/uri
+import gleeter/hackney
 import gleeter/version
 
 const base_url = "https://xkcd.com"

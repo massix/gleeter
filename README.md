@@ -112,6 +112,16 @@ The configuration file is loaded when Gleeter starts. Gleeter checks for the con
 
 The settings defined in the file are used to initialize the application and control its behavior.
 
+### SSL certificates
+
+Gleeter fetches comics over HTTPS, so when a corporate Zero-Trust proxy intercepts TLS traffic it needs to trust the proxy's CA bundle. Set one of the following environment variables to the path of a PEM file containing the extra CA certificates. The certificates are **merged** with the default Mozilla trust store (so public sites keep verifying even if the bundle only contains a private root CA):
+
+1.  `GLEETER_SSL_CERT_FILE`: Gleeter-specific override, checked first. Takes precedence over the other two.
+2.  `NIX_SSL_CERT_FILE`: standard variable set by Nix installations and common Zero-Trust setups.
+3.  `SSL_CERT_FILE`: the standard variable honored by OpenSSL, curl, Python, etc.
+
+If the configured file is missing or unreadable, a warning is logged and Gleeter falls back to the default trust store.
+
 *   `random_start`: Specifies the starting comic number for the random comic selection. If not specified, a default value is used.
 
 *   `[screen]`: This section configures the screen dimensions for displaying comics.
