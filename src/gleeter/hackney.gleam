@@ -41,7 +41,7 @@ pub fn cacert_file() -> option.Option(String) {
 fn ffi_send(
   method: String,
   url: String,
-  headers: List(http.Header),
+  headers: List(#(String, String)),
   body: BytesTree,
   cacert_file: String,
 ) -> Result(Response(BitArray), Error)
@@ -76,6 +76,6 @@ pub fn send(req: Request(String)) -> Result(Response(String), Error) {
   }
 }
 
-fn normalise_header(header: http.Header) -> http.Header {
+fn normalise_header(header: #(String, String)) -> #(String, String) {
   #(string.lowercase(header.0), header.1)
 }
