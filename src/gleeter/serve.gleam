@@ -283,6 +283,7 @@ type PathResult {
   Json(json.Json, Int)
   Comic(cache.ComicWithData)
   Prometheus(String)
+  ComicList(List(cache.ComicWithData))
 }
 
 /// This will first check if an authentication is needed
@@ -374,6 +375,14 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> mout.Outgoing {
       |> result.unwrap(ApiError(message) |> encode_api_error() |> Json(500))
     }
 
+    let comic_list_or_error = fn(
+      in: Result(List(cache.ComicWithData), Nil),
+      message: String,
+    ) {
+      result.map(in, ComicList)
+      |> result.unwrap(ApiError(message) |> encode_api_error() |> Json(500))
+    }
+
     let result = case path_segments {
       Ok(l) ->
         case l {
@@ -422,6 +431,10 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> mout.Outgoing {
                     handle_id(cache, id)
                     |> comic_or_error("Failed to load comic")
                   }
+                  config.SequenceAlias(_, comics) -> {
+                    list.try_map(comics, handle_id(cache, _))
+                    |> comic_list_or_error("Failed to load sequence comic")
+                  }
                 }
               Error(_) -> {
                 metrics.increment_invalid_requests()
@@ -460,6 +473,20 @@ fn handler(base_path: String) -> fn(StatefulRequest) -> mout.Outgoing {
         |> mout.with_body(
           cd |> to_printable(terminal_size) |> bytes_tree.to_bit_array,
         )
+      }
+      ComicList(comics) -> {
+        process.send(actor, Inc)
+
+        let body =
+          comics
+          |> list.map(fn(cd) { to_printable(cd, terminal_size) })
+          |> bytes_tree.concat
+          |> bytes_tree.to_bit_array
+
+        mout.ok()
+        |> mout.with_header("Content-Type", "text/plain")
+        |> mout.with_header("X-Server-Version", version.gleeter_version)
+        |> mout.with_body(body)
       }
       Prometheus(result) -> {
         mout.ok()

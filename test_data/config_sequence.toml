@@ -1,0 +1,14 @@
+[[alias]]
+name = "multi"
+type = "sequence"
+sequence = [1, 5, 8]
+
+[[alias]]
+name = "single"
+type = "sequence"
+sequence = [42]
+
+[[alias]]
+name = "mixed"
+type = "sequence"
+sequence = [3, -1, "abc", 7]

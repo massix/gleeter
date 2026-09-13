@@ -8,6 +8,7 @@ pub type ApplicationBehavior {
   RandomComic(ignore_cache: Bool)
   LatestComic(ignore_cache: Bool)
   WithIDComic(id: Int, ignore_cache: Bool)
+  SequenceComic(comics: List(Int), ignore_cache: Bool)
   PrintVersion
   Help
   ClearCache
@@ -63,6 +64,7 @@ pub fn parse_arguments(
             config.IdAlias(_, id) -> WithIDComic(id, ignore_cache)
             config.LatestAlias(_) -> LatestComic(ignore_cache)
             config.RandomAlias(_) -> RandomComic(ignore_cache)
+            config.SequenceAlias(_, seq) -> SequenceComic(seq, ignore_cache)
           }
         Error(_) -> Help
       }

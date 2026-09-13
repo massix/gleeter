@@ -28,6 +28,7 @@ pub type Alias {
   IdAlias(name: String, comic_id: Int)
   LatestAlias(name: String)
   RandomAlias(name: String)
+  SequenceAlias(name: String, sequence: List(Int))
 }
 
 pub type ConfigFile =
@@ -134,22 +135,49 @@ fn parse_metrics_configuration(
   }
 }
 
+fn get_sequence(
+  in: dict.Dict(String, tom.Toml),
+  field: List(String),
+) -> option.Option(List(Int)) {
+  case tom.get_array(in, field) {
+    Error(_) -> option.None
+    Ok(items) -> {
+      let ids =
+        items
+        |> list.filter_map(fn(item) {
+          case item {
+            tom.Int(id) if id > 0 -> Ok(id)
+            _ -> Error(Nil)
+          }
+        })
+      case ids {
+        [] -> option.None
+        _ -> option.Some(ids)
+      }
+    }
+  }
+}
+
 fn parse_alias(in: dict.Dict(String, tom.Toml)) -> option.Option(Alias) {
   let name = tom.get_string(in, ["name"]) |> validate_name
   let alias_type = tom.get_string(in, ["type"]) |> option.from_result
   let comic_id = tom.get_int(in, ["id"]) |> option.from_result
+  let comic_sequence = get_sequence(in, ["sequence"])
 
-  case name, alias_type, comic_id {
-    Valid(name), option.Some("id"), option.Some(comic_id) -> {
+  case name, alias_type, comic_id, comic_sequence {
+    Valid(name), option.Some("id"), option.Some(comic_id), _ -> {
       IdAlias(name, comic_id) |> option.Some
     }
-    Valid(name), option.Some("latest"), _ -> {
+    Valid(name), option.Some("latest"), _, _ -> {
       LatestAlias(name) |> option.Some
     }
-    Valid(name), option.Some("random"), _ -> {
+    Valid(name), option.Some("random"), _, _ -> {
       RandomAlias(name) |> option.Some
     }
-    _, _, _ -> option.None
+    Valid(name), option.Some("sequence"), _, option.Some(comic_sequence) -> {
+      SequenceAlias(name, comic_sequence) |> option.Some
+    }
+    _, _, _, _ -> option.None
   }
 }
 

@@ -95,6 +95,11 @@ type = "random"
 name = "l"
 type = "latest"
 
+[[alias]]
+name = "trilogy"
+type = "sequence"
+sequence = [160, 11, 605]
+
 [metrics]
 ignore_base_path = true
 username = "your_username"
@@ -133,8 +138,9 @@ If the configured file is missing or unreadable, a warning is logged and Gleeter
     *   `password`: An optional password for basic authentication on the `/metrics` endpoint. If provided, a username must also be specified.
 *   `[[alias]]`: This section defines aliases for accessing comics. You can define multiple aliases.
     *   `name`: The name of the alias. Alias names **must not** be empty and **must not** contain any of the following characters: `!`, `;`, `$`, `:`, `\`, `"`, `'`, `(`, `)`, space, tab, newline, or carriage return. Leading and trailing whitespaces will be automatically removed.
-    *   `type`: The type of alias. Valid values are `"id"`, `"random"`, and `"latest"`.
+    *   `type`: The type of alias. Valid values are `"id"`, `"random"`, `"latest"`, and `"sequence"`.
     *   `id`: (Only required for `"id"` aliases) The comic ID to associate with the alias.
+    *   `sequence`: (Only required for `"sequence"` aliases) A list of comic IDs to be printed in order. Only positive integer values are accepted; any other entry is silently ignored. If the resulting list is empty, the alias is ignored.
 
 The [config.gleam](src/gleeter/config.gleam) file defines the structure of the configuration data and how it is parsed from the TOML file.
 

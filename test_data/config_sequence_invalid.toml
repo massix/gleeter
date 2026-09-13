@@ -1,0 +1,13 @@
+[[alias]]
+name = "empty"
+type = "sequence"
+sequence = []
+
+[[alias]]
+name = "nokey"
+type = "sequence"
+
+[[alias]]
+name = "allinvalid"
+type = "sequence"
+sequence = [0, -5, "x", false]
