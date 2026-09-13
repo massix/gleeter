@@ -5,6 +5,7 @@ import gleam/io
 import gleam/list
 import gleam/option
 import gleam/result
+import gleam/string
 import gleam/uri
 import gleeter/application_behavior
 import gleeter/cache
@@ -187,6 +188,10 @@ fn print_help(aliases: List(config.Alias)) -> Result(Nil, Nil) {
     "  clearcache: clear the cache without printing any comic",
   ]
 
+  let print_sequence = fn(s: List(Int)) -> String {
+    s |> list.map(int.to_string) |> string.join(", ")
+  }
+
   let aliases =
     list.map(aliases, fn(alias) {
       case alias {
@@ -194,6 +199,11 @@ fn print_help(aliases: List(config.Alias)) -> Result(Nil, Nil) {
         config.LatestAlias(_) -> "  " <> alias.name <> ": print latest comic"
         config.IdAlias(_, id) ->
           "  " <> alias.name <> ": print comic with id " <> int.to_string(id)
+        config.SequenceAlias(_, seq) ->
+          "  "
+          <> alias.name
+          <> ": print all comics in the sequence "
+          <> print_sequence(seq)
       }
     })
 
@@ -219,6 +229,12 @@ pub fn main() -> Result(Nil, Nil) {
       print_comic(cache, configuration, Random, ignore_cache)
     application_behavior.WithIDComic(id, ignore_cache) ->
       print_comic(cache, configuration, ID(id), ignore_cache)
+    application_behavior.SequenceComic(comics, ignore_cache) -> {
+      list.try_map(comics, fn(id) {
+        print_comic(cache, configuration, ID(id), ignore_cache)
+      })
+      |> result.map(fn(_) { Nil })
+    }
     application_behavior.Serve(p, b) ->
       serve.serve(p, b, cache, configuration) |> Ok
     application_behavior.Help -> print_help(configuration.aliases)

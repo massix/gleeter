@@ -1,5 +1,5 @@
 import gleeter/application_behavior
-import gleeter/config.{IdAlias, LatestAlias, RandomAlias}
+import gleeter/config.{IdAlias, LatestAlias, RandomAlias, SequenceAlias}
 import gleeunit/should
 
 fn aliases() {
@@ -9,6 +9,7 @@ fn aliases() {
     IdAlias("tenthousands", 1053),
     LatestAlias("lt"),
     RandomAlias("rnd"),
+    SequenceAlias("bobbythousands", [327, 1053]),
   ]
 }
 
@@ -72,6 +73,11 @@ pub fn application_behavior_recognizes_bobbytables_alias_test() {
 pub fn application_behavior_recognizes_tenthousands_alias_test() {
   application_behavior.parse_arguments(["tenthousands"], aliases(), False)
   |> should.equal(application_behavior.WithIDComic(1053, False))
+}
+
+pub fn application_behavior_recognizes_sequence_alias_test() {
+  application_behavior.parse_arguments(["bobbythousands"], aliases(), False)
+  |> should.equal(application_behavior.SequenceComic([327, 1053], False))
 }
 
 pub fn application_behavior_serve_without_parameters_test() {

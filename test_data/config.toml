@@ -20,6 +20,11 @@ type = "id"
 id = 987
 
 [[alias]]
+name = "sequence"
+type = "sequence"
+sequence = [ 123, 987 ]
+
+[[alias]]
 name = "     with spaces    "
 type = "random"
 

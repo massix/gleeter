@@ -2,7 +2,7 @@ import envoy
 import gleam/option.{None, Some}
 import gleeter/config.{
   Configuration, IdAlias, LatestAlias, MetricsConfiguration, RandomAlias,
-  get_configuration_file, parse,
+  SequenceAlias, get_configuration_file, parse,
 }
 import gleeunit/should
 
@@ -33,6 +33,7 @@ pub fn config_parses_configuration_test() {
     Configuration(Some(38), Some(80), Some(23), None, [
       IdAlias("bobbytables", 987),
       IdAlias("trimmed_alias", 987),
+      SequenceAlias("sequence", [123, 987]),
       RandomAlias("rnd"),
       LatestAlias("l"),
     ]),
@@ -69,4 +70,20 @@ pub fn config_metrics_skips_credentials_if_one_is_missing_test() {
   |> should.equal(
     Configuration(None, None, None, Some(MetricsConfiguration(False, None)), []),
   )
+}
+
+pub fn config_parses_sequence_alias_test() {
+  parse("test_data/config_sequence.toml")
+  |> should.equal(
+    Configuration(None, None, None, None, [
+      SequenceAlias("multi", [1, 5, 8]),
+      SequenceAlias("single", [42]),
+      SequenceAlias("mixed", [3, 7]),
+    ]),
+  )
+}
+
+pub fn config_drops_sequence_aliases_without_valid_ids_test() {
+  parse("test_data/config_sequence_invalid.toml")
+  |> should.equal(Configuration(None, None, None, None, []))
 }
