@@ -64,7 +64,7 @@ jobs:
       - run: make check-format
     if: ${{ inputs.check_format || true }}
   build-docker:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v30
