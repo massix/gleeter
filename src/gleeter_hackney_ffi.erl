@@ -1,7 +1,7 @@
 -module(gleeter_hackney_ffi).
 
-%% @doc Mirror of gleam_hackney_ffi that supports custom CA bundles set via
-%% the *_SSL_CERT_FILE environment variables.
+%% @doc Hackney FFI wrapper that supports custom CA bundles set via the
+%% *_SSL_CERT_FILE environment variables.
 -export([send/5, load_bundle/1]).
 
 send(Method, Url, Headers, Body, CacertFile) ->

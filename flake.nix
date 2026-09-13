@@ -15,7 +15,7 @@
             import nixpkgs-stable { inherit system; }
           else import nixpkgs { inherit system; };
         inherit (pkgs) mkShell;
-        gleamPackagesHash = "sha256-FTPZ+ZophA0ZdnlqGx0fkU7BwxFayQX33wek4wxMD98=";
+        gleamPackagesHash = "sha256-3eAIgHg68CYIsgOi64Seh0NE7VA1BxYo0YC9NzhDvb8=";
         version = "1.5.0";
         pname = "gleeter";
         src = ./.;
